@@ -251,6 +251,18 @@
 				qcom,mode = "pwm";
 			};
 		};
+
+                qcom,leds@1000 {
+                        status = "okay";
+                        qcom,led_charger {
+                                label = "charger_light";
+                                linux,name = "charger_light";
+                                linux,default-trigger = "chgl-trigger";
+                                qcom,default-state = "off";
+                                qcom,max-current = <40>;
+                                qcom,id = <0x08>;
+                        };
+                };
 	};
 };
 
