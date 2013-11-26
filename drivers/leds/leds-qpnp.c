@@ -166,7 +166,7 @@
 
 #define RGB_LED_SRC_SEL(base)		(base + 0x45)
 #define RGB_LED_EN_CTL(base)		(base + 0x46)
-#define RGB_LED_ATC_CTL(base)		(base + 0x47)
+#define RGB_LED_ATC_CTL(base)		(base + 0x4D)
 
 #define RGB_MAX_LEVEL			LED_FULL
 #define RGB_LED_ENABLE_RED		0x80
@@ -180,6 +180,7 @@
 #define	PWM_LUT_MAX_SIZE		63
 #define	PWM_GPLED_LUT_MAX_SIZE		31
 #define RGB_LED_DISABLE			0x00
+#define RGB_LED_ATC_CTL_MASK            0x03
 
 #define MPP_MAX_LEVEL			LED_FULL
 #define LED_MPP_MODE_CTRL(base)		(base + 0x40)
@@ -235,6 +236,7 @@ enum qpnp_leds {
 	QPNP_ID_RGB_BLUE,
 	QPNP_ID_LED_MPP,
 	QPNP_ID_KPDBL,
+	QPNP_ID_LED_CHG,
 	QPNP_ID_MAX,
 };
 
@@ -485,6 +487,9 @@ struct qpnp_led_data {
 
 static int num_kpbl_leds_on;
 
+static int qpnp_led_atc_on(struct qpnp_led_data *led);
+static int qpnp_led_atc_off(struct qpnp_led_data *led);
+
 static int
 qpnp_led_masked_write(struct qpnp_led_data *led, u16 addr, u8 mask, u8 val)
 {
@@ -684,6 +689,20 @@ static int qpnp_wled_set(struct qpnp_led_data *led)
 		dev_err(&led->spmi_dev->dev, "WLED sync failed(%d)\n", rc);
 		return rc;
 	}
+	return 0;
+}
+
+static int qpnp_led_chg_set(struct qpnp_led_data *led)
+{
+        int level = led->cdev.brightness;
+
+        if (level > WLED_MAX_LEVEL)
+                level = WLED_MAX_LEVEL;
+        if (level == 0)
+                qpnp_led_atc_off(led);
+        else
+                qpnp_led_atc_on(led);
+
 	return 0;
 }
 
@@ -1444,6 +1463,12 @@ static void __qpnp_led_work(struct qpnp_led_data *led,
 			dev_err(&led->spmi_dev->dev,
 				"KPDBL set brightness failed (%d)\n", rc);
 		break;
+	case QPNP_ID_LED_CHG:
+                rc = qpnp_led_chg_set(led);
+		if (rc < 0)
+			dev_err(&led->spmi_dev->dev,
+				"CHG_ATC set brightness failed (%d)\n", rc);
+		break;
 	default:
 		dev_err(&led->spmi_dev->dev, "Invalid LED(%d)\n", led->id);
 		break;
@@ -1484,6 +1509,9 @@ static int __devinit qpnp_led_set_max_brightness(struct qpnp_led_data *led)
 			led->cdev.max_brightness = MPP_MAX_LEVEL;
 		break;
 	case QPNP_ID_KPDBL:
+		led->cdev.max_brightness = KPDBL_MAX_LEVEL;
+		break;
+	case QPNP_ID_LED_CHG:
 		led->cdev.max_brightness = KPDBL_MAX_LEVEL;
 		break;
 	default:
@@ -2476,6 +2504,30 @@ static int __devinit qpnp_rgb_init(struct qpnp_led_data *led)
 	return 0;
 }
 
+static int qpnp_led_atc_on(struct qpnp_led_data *led)
+{
+       int rc;
+
+       rc = qpnp_led_masked_write(led, RGB_LED_ATC_CTL(led->base), RGB_LED_ATC_CTL_MASK, 0x01);
+       if (rc) {
+                dev_err(&led->spmi_dev->dev,
+			"%s: failed write RGB_LED_ATC_CTL ", __func__);
+       }
+       return 0;
+}
+
+static int qpnp_led_atc_off(struct qpnp_led_data *led)
+{
+       int rc;
+
+       rc = qpnp_led_masked_write(led, RGB_LED_ATC_CTL(led->base), RGB_LED_ATC_CTL_MASK, 0x00);
+       if (rc) {
+                dev_err(&led->spmi_dev->dev,
+			"%s: failed write RGB_LED_ATC_CTL ", __func__);
+       }
+       return 0;
+}
+
 static int __devinit qpnp_mpp_init(struct qpnp_led_data *led)
 {
 	int rc, val;
@@ -2559,6 +2611,9 @@ static int __devinit qpnp_led_initialize(struct qpnp_led_data *led)
 		if (rc)
 			dev_err(&led->spmi_dev->dev,
 				"KPDBL initialize failed(%d)\n", rc);
+		break;
+	case QPNP_ID_LED_CHG:
+		/* only to pass probe to avoid error */
 		break;
 	default:
 		dev_err(&led->spmi_dev->dev, "Invalid LED(%d)\n", led->id);
@@ -3308,6 +3363,9 @@ static int __devinit qpnp_leds_probe(struct spmi_device *spmi)
 					"Unable to read kpdbl config data\n");
 				goto fail_id_check;
 			}
+		} else if (strncmp(led_label, "charger_light", sizeof("charger_light")) == 0) {
+	                dev_err(&led->spmi_dev->dev,
+				"charger_light read ok \n");
 		} else {
 			dev_err(&led->spmi_dev->dev, "No LED matching label\n");
 			rc = -EINVAL;
