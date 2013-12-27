@@ -2213,6 +2213,19 @@ static int stk3x1x_parse_dt(struct device *dev,
 }
 #endif /* !CONFIG_OF */
 
+static int stk3x1x_exist_check(struct stk3x1x_data *ps_data)
+{
+        int temp = i2c_smbus_read_word_data(ps_data->client,STK_PDT_ID_REG);
+        if(temp < 0)
+        {
+	printk(KERN_INFO "stk3x1x don't exist!");
+                return 1;
+        }else{
+	printk(KERN_INFO "stk3x1x exist!");
+                return 0;
+        }
+}
+
 static int stk3x1x_probe(struct i2c_client *client,
                         const struct i2c_device_id *id)
 {
@@ -2355,6 +2368,10 @@ static int stk3x1x_probe(struct i2c_client *client,
 	if (err)
 		goto err_power_on;
 
+        err = stk3x1x_exist_check(ps_data);
+        if (err)
+                goto err_exist_check;
+
 	ps_data->als_enabled = false;
 	ps_data->ps_enabled = false;
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -2373,6 +2390,7 @@ static int stk3x1x_probe(struct i2c_client *client,
 
 err_init_all_setting:
 	stk3x1x_power_ctl(ps_data, false);
+err_exist_check:
 err_power_on:
 	stk3x1x_power_init(ps_data, false);
 err_power_init:
