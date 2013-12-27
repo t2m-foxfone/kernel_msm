@@ -56,6 +56,14 @@
 			focaltech,fw-delay-readid-ms = <10>;
 			focaltech,fw-delay-era-flsh-ms = <2000>;
 		};
+		Goodix-TS@5d {
+			compatible = "Goodix-TS,gt915";
+			reg = <0x5d>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <1 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vcc_i2c-supply = <&pm8110_l14>;
+		};
 	};
 
 	gen-vkeys {
