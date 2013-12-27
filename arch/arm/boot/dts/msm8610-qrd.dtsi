@@ -99,6 +99,20 @@
 			kionix,negate-z;
 			kionix,res-12bit;
 		};
+
+                st480@c {
+                        compatible = "st,st480";
+                        reg = <0x0c>;
+                 };
+
+		bma2x2@18 {
+			compatible = "bosch,bma2x2";
+			reg = <0x18>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <81 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vio-supply = <&pm8110_l14>;
+		};
 	};
 
 	flashlight {
