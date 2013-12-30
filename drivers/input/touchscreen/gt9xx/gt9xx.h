@@ -76,7 +76,7 @@ extern u16 total_len;
 #define GTP_ESD_PROTECT       0
 #define GTP_WITH_PEN          0
 
-#define GTP_SLIDE_WAKEUP     1 
+#define GTP_SLIDE_WAKEUP     0
 #define GTP_DBL_CLK_WAKEUP    0     // double-click wakeup, function together with GTP_SLIDE_WAKEUP
 
 #define GTP_DEBUG_ON          0 
