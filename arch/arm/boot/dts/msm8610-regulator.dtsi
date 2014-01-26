@@ -85,7 +85,10 @@
 		qcom,cpr-fuse-redun-ro-sel = <44 26 29>;
 		qcom,cpr-corner-map = <1 1 2 2 3 3 3 3 3 3 3 3>;
 
-		qcom,cpr-enable;
+		
+		/* disable cpr function for system unstable issue */
+//		qcom,cpr-enable;
+		
 	};
 };
 
