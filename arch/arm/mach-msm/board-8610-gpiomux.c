@@ -28,7 +28,11 @@ static struct gpiomux_setting gpio_spi_susp_config = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
-
+static struct gpiomux_setting gpio_i2c2_config = {
+	.func = GPIOMUX_FUNC_5,
+	.drv  = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
 static struct gpiomux_setting gpio_i2c_config = {
 	.func = GPIOMUX_FUNC_3,
 	.drv  = GPIOMUX_DRV_2MA,
@@ -216,6 +220,20 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 		},
 	},
 	{
+		.gpio = 8, /* BLSP1 QUP2 I2C_SDA */
+		.settings = {
+		    [GPIOMUX_ACTIVE] = &gpio_i2c2_config,
+		    [GPIOMUX_SUSPENDED] = &gpio_i2c2_config,
+		},
+	},
+	{
+		.gpio = 9, /* BLSP1 QUP2 I2C_SCL */
+		.settings = {
+		    [GPIOMUX_ACTIVE] = &gpio_i2c2_config,
+		    [GPIOMUX_SUSPENDED] = &gpio_i2c2_config,
+		},
+	},
+	{
 		.gpio      = 10,	/* BLSP1 QUP3 I2C_SDA */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_i2c_config,
@@ -260,14 +278,14 @@ static struct gpiomux_setting gpio_i2c_nfc_pvt_config = {
 
 static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 	{
-		.gpio   = 8,            /* BLSP1 QUP2 I2C_SDA */
+		.gpio   = 88,            /* BLSP1 QUP2 I2C_SDA */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_i2c_nfc_pvt_config,
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_nfc_pvt_config,
 		},
 	},
 	{
-		.gpio   = 9,            /* BLSP1 QUP2 I2C_SCL */
+		.gpio   = 89,            /* BLSP1 QUP2 I2C_SCL */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_i2c_nfc_pvt_config,
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_nfc_pvt_config,
@@ -305,6 +323,7 @@ static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
+#if 0
 	{
 		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
 		.settings = {
@@ -319,6 +338,7 @@ static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
+#endif
 };
 
 static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
@@ -350,6 +370,7 @@ static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
+#if 0
 	{
 		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
 		.settings = {
@@ -364,6 +385,7 @@ static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
+#endif
 };
 
 
@@ -459,7 +481,7 @@ static struct gpiomux_setting accel_interrupt_config = {
 
 static struct msm_gpiomux_config msm_non_qrd_configs[] __initdata = {
 	{
-		.gpio = 8, /* CAM1_STANDBY_N */
+		.gpio = 85, /* CAM1_STANDBY_N */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[1],
@@ -518,7 +540,7 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 		},
 	},
 	{
-		.gpio = 8, /* CAM1_STANDBY_N */
+		.gpio = 85, /* CAM1_STANDBY_N */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[1],
