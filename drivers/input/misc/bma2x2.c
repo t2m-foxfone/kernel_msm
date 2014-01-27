@@ -3632,7 +3632,7 @@ static int bma2x2_read_accel_xyz(struct i2c_client *client,
 		acc->z = acc->z >> (sizeof(short)*8-(BMA2X2_ACC_Z8_LSB__LEN +
 					BMA2X2_ACC_Z_MSB__LEN));
 		
-		printk("BMA22E_TYPE x =%d , y = %d , z = %d \n", acc->x, acc->y, acc->z);
+		//  printk("BMA22E_TYPE x =%d , y = %d , z = %d \n", acc->x, acc->y, acc->z);
 		break;
 	case 3:
 		comres = bma2x2_smbus_read_byte_block(client,
@@ -3670,7 +3670,7 @@ static int bma2x2_read_accel_xyz(struct i2c_client *client,
 		acc->y = (data[3]<<8)|(data[2]|0x01);
 		acc->z = (data[5]<<8)|(data[4]|0x01);
 
-		printk("BMA223_TYPE x =%d , y = %d , z = %d \n", acc->x, acc->y, acc->z);
+	//	printk("BMA223_TYPE x =%d , y = %d , z = %d \n", acc->x, acc->y, acc->z);
 		break;
 
 	default:

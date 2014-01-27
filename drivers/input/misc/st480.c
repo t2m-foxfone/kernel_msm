@@ -357,8 +357,8 @@ static void st480_work_func(void)
                                 mag.mag_y = (-1)*((buffer[3]<<8)|buffer[4]);
                                 mag.mag_z = (-1)*((buffer[7]<<8)|buffer[8]);
                         #elif defined (CONFIG_ST480_BOARD_LOCATION_BACK_DEGREE_90)
-                                mag.mag_x = (buffer[3]<<8)|buffer[4];
-                                mag.mag_y = (-1)*((buffer[5]<<8)|buffer[6]);
+                                mag.mag_x = (-1)*((buffer[3]<<8)|buffer[4]);
+                                mag.mag_y = ((buffer[5]<<8)|buffer[6]);
                                 mag.mag_z = (-1)*((buffer[7]<<8)|buffer[8]);
                         #elif defined (CONFIG_ST480_BOARD_LOCATION_BACK_DEGREE_180)
                                 mag.mag_x = (buffer[5]<<8)|buffer[6];
