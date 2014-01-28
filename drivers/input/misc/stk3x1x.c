@@ -2708,7 +2708,7 @@ static void stk_als_poll_work_func(struct work_struct *work)
 			if(ps_data->ir_code > als_comperator)
 				ps_data->als_correct_factor = STK_IRC_ALS_CORREC;
 		}
-		printk(KERN_INFO "%s: als=%d, ir=%d, als_correct_factor=%d", __func__, reading, ps_data->ir_code, ps_data->als_correct_factor);
+		//printk(KERN_INFO "%s: als=%d, ir=%d, als_correct_factor=%d", __func__, reading, ps_data->ir_code, ps_data->als_correct_factor);
 		ps_data->ir_code = 0;
 	}	
 	reading = reading * ps_data->als_correct_factor / 1000;
@@ -2719,7 +2719,7 @@ static void stk_als_poll_work_func(struct work_struct *work)
 		ps_data->als_lux_last = reading_lux;
 		input_report_abs(ps_data->als_input_dev, ABS_MISC, reading_lux);
 		input_sync(ps_data->als_input_dev);
-		printk(KERN_INFO "%s: als input event %d lux\n",__func__, reading_lux);		
+		//printk(KERN_INFO "%s: als input event %d lux\n",__func__, reading_lux);		
 	}
 	return;
 }
@@ -2893,7 +2893,7 @@ static void stk_work_func(struct work_struct *work)
 		input_report_abs(ps_data->als_input_dev, ABS_MISC, ps_data->als_lux_last);
 		input_sync(ps_data->als_input_dev);
 #ifdef STK_DEBUG_PRINTF		
-		printk(KERN_INFO "%s: als input event %d lux\n",__func__, ps_data->als_lux_last);			
+		//printk(KERN_INFO "%s: als input event %d lux\n",__func__, ps_data->als_lux_last);			
 #endif		
     }
     if (org_flag_reg & STK_FLG_PSINT_MASK)
