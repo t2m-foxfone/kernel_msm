@@ -42,15 +42,15 @@ static struct msm_sensor_power_setting hi258_power_setting[] = {
 		.delay = 0,
 	},
 	{
-		.seq_type = SENSOR_GPIO,
-		.seq_val = SENSOR_GPIO_VIO,
-		.config_val = GPIO_OUT_LOW,
-		.delay = 10,
+		.seq_type = SENSOR_VREG,
+		.seq_val = CAM_VIO,
+		.config_val = 0,
+		.delay = 0,
 	},
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_VANA,
-		.config_val = GPIO_OUT_LOW,
+		.config_val = GPIO_OUT_HIGH,
 		.delay = 10,
 	},
 	{
