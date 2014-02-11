@@ -46,7 +46,7 @@ static struct gpiomux_setting gpio_cam_i2c_config = {
 };
 
 static struct gpiomux_setting gpio_nfc_config = {
-	.func = GPIOMUX_FUNC_2,
+	.func = GPIOMUX_FUNC_3,
 	.drv  = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
@@ -261,6 +261,23 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_cam_i2c_config,
 		},
 	},
+
+	{
+                .gpio      = 88,        /* BLSP1 QUP4 I2C_SCL */
+                .settings = {
+                        [GPIOMUX_ACTIVE] = &gpio_nfc_config,
+                        [GPIOMUX_SUSPENDED] = &gpio_nfc_config,
+                },
+        },      
+        {               
+                .gpio      = 89,        
+                .settings = {
+                        [GPIOMUX_ACTIVE] = &gpio_nfc_config,
+                        [GPIOMUX_SUSPENDED] = &gpio_nfc_config,
+                },
+        },      
+
+
 	{
 		.gpio      = 78,	/* NFC CLK */
 		.settings = {
@@ -268,6 +285,8 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_nfc_sus_config,
 		},
 	},
+
+
 };
 
 static struct gpiomux_setting gpio_i2c_nfc_pvt_config = {
@@ -323,22 +342,6 @@ static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
-#if 0
-	{
-		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 88,		/* BLSP1 QUP4 SPI_CS */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-#endif
 };
 
 static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
@@ -370,22 +373,6 @@ static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
-#if 0
-	{
-		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 88,		/* BLSP1 QUP4 SPI_CS */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-#endif
 };
 
 

@@ -34,6 +34,7 @@
 	};
 
 	i2c@f9924000 { /* BLSP-1 QUP-2 */
+		/*
 		nfc-nci@e {
 			compatible = "qcom,nfc-nci";
 			reg = <0x0e>;
@@ -45,6 +46,7 @@
 			interrupts = <77 0>;
 			qcom,clk-gpio = <&msmgpio 75 0x00>;
 		};
+		*/
 	};
 };
 
