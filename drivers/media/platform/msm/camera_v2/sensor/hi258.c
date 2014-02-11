@@ -166,7 +166,7 @@ static struct msm_camera_i2c_reg_conf hi258_recommend_settings[] = {
 ///// PAGE 0 Start /////
 {0x03, 0x00}, //page 0
 {0x10, 0x11}, //pre1+sub1
-{0x11, 0x90}, //Windowing On + 1Frame Skip
+{0x11, 0x91}, //Windowing On + 1Frame Skip
 {0x12, 0x04}, //Rinsing edge 0x04 // Falling edge 0x00
 {0x14, 0x05},
 
