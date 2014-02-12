@@ -528,7 +528,7 @@ static void goodix_ts_work_func(struct work_struct *work)
                 }
             }
         #endif
-            input_report_key(ts->input_dev, touch_key_array[i], key_value & (0x01<<i));   
+            input_report_key(ts->input_dev, touch_key_array[i], key_value);   
         }
         touch_num = 0;
         pre_touch = 0;
