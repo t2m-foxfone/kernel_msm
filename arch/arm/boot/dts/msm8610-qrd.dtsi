@@ -163,7 +163,7 @@
 		qcom,slave-id = <0x30 0x00 0xb2>;
 		compatible = "qcom,led-flash";
 		linux,name = "flashlight";
-		qcom,current = <200>;
+		qcom,current = <158>;
 		//qcom,gpio-flash = <&msmgpio 18 0>;
 		qcom,gpio-torch = <&msmgpio 19 0>;
 		qcom,gpio-strobe = <&msmgpio 18 0>;

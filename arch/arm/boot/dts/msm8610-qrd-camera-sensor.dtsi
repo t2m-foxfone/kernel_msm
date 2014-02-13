@@ -11,7 +11,21 @@
  * GNU General Public License for more details.
  */
 
+&soc {
+     led_flash0: qcom,camera-led-flash {
+        cell-index = <0>;
+        compatible = "qcom,camera-led-flash";
+        qcom,flash-type = <1>;
+        qcom,flash-source = <&flashlight>;
+    };
+};
 &i2c {
+     actuator0: qcom,actuator@18 {
+        cell-index = <4>;
+        reg = <0x18>;
+        compatible = "qcom,actuator";
+        qcom,cci-master = <0>;
+    };
         qcom,camera@7d {
                 compatible = "qcom,hi256";
                 reg = <0x7d>;
@@ -125,6 +139,8 @@
 		qcom,slave-id = <0x6c 0x300a 0x5648>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
+                qcom,actuator-src = <&actuator0>;
+		qcom,led-flash-src = <&led_flash0>;
 		qcom,mount-angle = <270>;
 		qcom,sensor-name = "skuf_ov5648_p5v23c";
 		cam_vdig-supply = <&pm8110_l7>;
