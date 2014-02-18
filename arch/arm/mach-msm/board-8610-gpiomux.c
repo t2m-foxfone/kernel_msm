@@ -288,7 +288,7 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 
 
 };
-
+#if 0
 static struct gpiomux_setting gpio_i2c_nfc_pvt_config = {
 		.func = GPIOMUX_FUNC_5, /*active 1*/ /* 0 */
 		.drv = GPIOMUX_DRV_2MA,
@@ -311,7 +311,7 @@ static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 		},
 	},
 };
-
+#endif
 
 static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 	{
@@ -684,8 +684,10 @@ void __init msm8610_init_gpiomux(void)
 	if (of_board_is_qrd()) {
 		msm_gpiomux_install(msm_interrupt_configs,
 			ARRAY_SIZE(msm_interrupt_configs));
+#if 0
 		msm_gpiomux_install(msm_nfc_configs,
 			ARRAY_SIZE(msm_nfc_configs));
+#endif
 	} else {
 		msm_gpiomux_install(msm_non_qrd_configs,
 			ARRAY_SIZE(msm_non_qrd_configs));
