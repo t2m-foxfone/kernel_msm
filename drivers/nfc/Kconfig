@@ -17,6 +17,7 @@ config PN544_NFC
 	  To compile this driver as a module, choose m here. The module will
 	  be called pn544.
 
+
 config NFC_PN533
 	tristate "NXP PN533 USB driver"
 	depends on USB
@@ -38,6 +39,12 @@ config NFC_WILINK
 	  Say Y here to compile support for Texas Instrument's NFC WiLink driver
 	  into the kernel or say M to compile it as module.
 
+
+config NFC_PN544_MSM
+        tristate "NFC_PN544 support"
+        help
+          SUPPORT NFC_PN544
+
 endmenu
 
 config NFC_QNCI
@@ -48,3 +55,4 @@ config NFC_QNCI
 	  This enables the NFC driver for QCA199x based devices.
 	  This is for i2c connected version. NCI protocol logic
 	  resides in the usermode and it has no other NFC dependencies.
+
