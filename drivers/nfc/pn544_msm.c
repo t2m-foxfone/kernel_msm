@@ -195,7 +195,7 @@ static long pn544_dev_ioctl(struct file *filp,
 			 */
 			pr_info("%s power on with firmware\n", __func__);
 			gpio_set_value(pn544_dev->ven_gpio, 1);
-			gpio_set_value(pn544_dev->firm_gpio, 0);
+			gpio_set_value(pn544_dev->firm_gpio, 1);
 			msleep(20);
 			gpio_set_value(pn544_dev->ven_gpio, 0);
 			msleep(60);
@@ -212,7 +212,7 @@ static long pn544_dev_ioctl(struct file *filp,
 			return 0;
 			pr_info("%s power off\n", __func__);
 			gpio_set_value(pn544_dev->firm_gpio, 0);
-			gpio_set_value(pn544_dev->ven_gpio, 1);
+			gpio_set_value(pn544_dev->ven_gpio, 0);
 			msleep(60);
 		} else {
 			pr_err("%s bad arg %lu\n", __func__, arg);
@@ -392,6 +392,14 @@ static int pn544_remove(struct i2c_client *client)
 	free_irq(client->irq, pn544_dev);
 	misc_deregister(&pn544_dev->pn544_device);
 	mutex_destroy(&pn544_dev->read_mutex);
+#if 0
+  	gpio_set_value(pn544_dev->ven_gpio, 1);
+        msleep(20);
+        gpio_set_value(pn544_dev->ven_gpio, 0);
+        msleep(60);
+        gpio_set_value(pn544_dev->ven_gpio, 1);
+#endif
+
 	gpio_free(pn544_dev->irq_gpio);
 	gpio_free(pn544_dev->ven_gpio);
 	gpio_free(pn544_dev->firm_gpio);
