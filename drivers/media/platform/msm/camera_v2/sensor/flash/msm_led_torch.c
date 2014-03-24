@@ -17,16 +17,15 @@
 #include "msm_led_flash.h"
 
 static struct led_trigger *torch_trigger;
+static struct led_trigger *flash_trigger;
 
 static void msm_led_torch_brightness_set(struct led_classdev *led_cdev,
 				enum led_brightness value)
 {
-	if (!torch_trigger) {
-		pr_err("No torch trigger found, can't set brightness\n");
-		return;
-	}
-
-	led_trigger_event(torch_trigger, value);
+    if (torch_trigger)
+        led_trigger_event(torch_trigger, value);
+    else if (flash_trigger)
+        led_trigger_event(flash_trigger, (value < LED_HALF) ? value : LED_HALF);
 };
 
 static struct led_classdev msm_torch_led = {
@@ -41,15 +40,17 @@ int32_t msm_led_torch_create_classdev(struct platform_device *pdev,
 	int rc;
 	struct msm_led_flash_ctrl_t *fctrl =
 		(struct msm_led_flash_ctrl_t *)data;
-
-	if (!fctrl || !fctrl->torch_trigger) {
-		pr_err("Invalid fctrl or torch trigger\n");
-		return -EINVAL;
-	}
-
-	torch_trigger = fctrl->torch_trigger;
-	msm_led_torch_brightness_set(&msm_torch_led, LED_OFF);
-
+    if (!fctrl || (!fctrl->torch_trigger && !fctrl->flash_trigger[0]))
+    {
+        pr_err("Invalid fctrl or led flash\n");
+        return -EINVAL;
+    }
+    if (fctrl->torch_trigger)
+    {
+        torch_trigger = fctrl->torch_trigger;
+        msm_led_torch_brightness_set(&msm_torch_led, LED_OFF);
+    } else
+        flash_trigger = fctrl->flash_trigger[0];
 	rc = led_classdev_register(&pdev->dev, &msm_torch_led);
 	if (rc) {
 		pr_err("Failed to register led dev. rc = %d\n", rc);

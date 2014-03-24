@@ -34,6 +34,7 @@
 	};
 
 	i2c@f9924000 { /* BLSP-1 QUP-2 */
+		/*
 		nfc-nci@e {
 			compatible = "qcom,nfc-nci";
 			reg = <0x0e>;
@@ -45,6 +46,7 @@
 			interrupts = <77 0>;
 			qcom,clk-gpio = <&msmgpio 75 0x00>;
 		};
+		*/
 	};
 };
 
@@ -79,10 +81,10 @@
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_hx8379a_wvga_vid>;
+	qcom,dsi-pref-prim-pan = <&dsi_tianma_tm040ydh65_ili9806c_wvga_video>;
 };
 
-&dsi_hx8379a_wvga_vid {
+&dsi_tianma_tm040ydh65_ili9806c_wvga_video {
 	qcom,cont-splash-enabled;
 };
 

@@ -27,6 +27,19 @@
  */
 
 &soc {
+
+	i2c@f9926000{	
+		nfc-pn544@28 {
+			 compatible = "nfc-pn544";
+			 reg = <0x2b>;
+			 qcom,irq-gpio = <&msmgpio 77 0x00>;
+			 qcom,enable-gpio = <&msmgpio 93 0x00>;
+			 qcom.firm-gpio = <&msmgpio 83 0x00>;
+			 interrupt-parent = <&msmgpio>;	
+			 interrupts = <77 0>;
+                };
+	};
+
 	i2c@f9923000{
 		focaltech@38{
 			compatible = "focaltech,5x06";
@@ -55,6 +68,14 @@
 			focaltech,fw-upgrade-id2 = <0x08>;
 			focaltech,fw-delay-readid-ms = <10>;
 			focaltech,fw-delay-era-flsh-ms = <2000>;
+		};
+		Goodix-TS@5d {
+			compatible = "Goodix-TS,gt915";
+			reg = <0x5d>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <1 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vcc_i2c-supply = <&pm8110_l14>;
 		};
 	};
 
@@ -91,15 +112,63 @@
 			kionix,negate-z;
 			kionix,res-12bit;
 		};
+
+                st480@c {
+                        compatible = "st,st480";
+                        reg = <0x0c>;
+                 };
+
+		stk3x1x@48 {
+			compatible = "stk,stk3x1x";
+			reg = <0x48>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <80 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vio-supply = <&pm8110_l14>;
+			stk,irq-gpio = <&msmgpio 80 0x02>;
+			stk,transmittance = <250>;
+			stk,state-reg = <0x00>;
+			stk,psctrl-reg = <0x71>;
+			stk,alsctrl-reg = <0x38>;
+			stk,ledctrl-reg = <0xFF>;
+			stk,wait-reg = <0x07>;
+			stk,ps-thdh = <1700>;
+			stk,ps-thdl = <1500>;
+			stk,use-fir;
+		};
+
+		bma2x2@18 {
+			compatible = "bosch,bma2x2";
+			reg = <0x18>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <81 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vio-supply = <&pm8110_l14>;
+		};
 	};
 
-	flashlight {
+	/*flashlight {
 		compatible = "qcom,leds-gpio-flash";
 		status = "okay";
 		qcom,flash-en = <&msmgpio 18 0>;
 		qcom,flash-now = <&msmgpio 19 0>;
 		linux,name = "flashlight";
 		linux,default-trigger = "flashlight-trigger";
+	};*/
+
+	i2c@f9924000 {
+	    flashlight: qcom,led-flash {
+		cell-index = <0>;
+		reg = <0x30>;
+		qcom,slave-id = <0x30 0x00 0xb2>;
+		compatible = "qcom,led-flash";
+		linux,name = "flashlight";
+		qcom,current = <158>;
+		//qcom,gpio-flash = <&msmgpio 18 0>;
+		qcom,gpio-torch = <&msmgpio 19 0>;
+		qcom,gpio-strobe = <&msmgpio 18 0>;
+		linux,default-trigger = "flashlight-trigger";
+	    };
 	};
 
 	qcom,wdt@f9017000 {
@@ -243,6 +312,18 @@
 				qcom,mode = "pwm";
 			};
 		};
+
+                qcom,leds@1000 {
+                        status = "okay";
+                        qcom,led_charger {
+                                label = "charger_light";
+                                linux,name = "charger_light";
+                                linux,default-trigger = "chgl-trigger";
+                                qcom,default-state = "off";
+                                qcom,max-current = <40>;
+                                qcom,id = <0x08>;
+                        };
+                };
 	};
 };
 
