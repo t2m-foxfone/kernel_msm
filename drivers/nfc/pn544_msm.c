@@ -410,6 +410,21 @@ static int pn544_remove(struct i2c_client *client)
 	return 0;
 }
 
+void pn544_shutdown(struct i2c_client *client )
+{
+	struct pn544_dev *pn544_dev;
+
+        pn544_dev = i2c_get_clientdata(client);
+
+	gpio_set_value(pn544_dev->ven_gpio, 1);
+        msleep(20);
+        gpio_set_value(pn544_dev->ven_gpio, 0);
+        msleep(60);
+        gpio_set_value(pn544_dev->ven_gpio, 1);
+
+}
+
+
 static const struct of_device_id msm_nfc_dt_match[] = {
 	{.compatible = "nfc-pn544"},
 	{}
@@ -425,6 +440,7 @@ static struct i2c_driver pn544_driver = {
 	.id_table	= pn544_id,
 	.probe		= pn544_probe,
 	.remove		= pn544_remove,
+	.shutdown	= pn544_shutdown,
 	.driver		= {
 		.owner	= THIS_MODULE,
 		.name	= PN544_DRIVER_NAME,
