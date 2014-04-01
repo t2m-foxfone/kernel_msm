@@ -1779,7 +1779,9 @@ static int __init hi258_init_module(void)
 		hi258_platform_probe);
 	if (!rc)
 		return rc;
-	return i2c_add_driver(&hi258_i2c_driver);
+	rc = i2c_add_driver(&hi258_i2c_driver);
+	gpio_direction_output(85,1);
+	return rc;
 }
 
 static void __exit hi258_exit_module(void)
