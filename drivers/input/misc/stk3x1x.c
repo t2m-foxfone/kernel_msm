@@ -1146,12 +1146,9 @@ static int32_t stk3x1x_enable_ps(struct stk3x1x_data *ps_data, uint8_t enable, u
     if(enable)
 	{
 		printk(KERN_INFO "%s: HT=%d,LT=%d\n", __func__, ps_data->ps_thd_h,  ps_data->ps_thd_l);				
-		if (!(ps_data->psi_set))
-		{
 #ifdef STK_TUNE0
-			hrtimer_start(&ps_data->ps_tune0_timer, ps_data->ps_tune0_delay, HRTIMER_MODE_REL);			
+		hrtimer_start(&ps_data->ps_tune0_timer, ps_data->ps_tune0_delay, HRTIMER_MODE_REL);
 #endif			
-		}
 #ifdef STK_POLL_PS		
 		hrtimer_start(&ps_data->ps_timer, ps_data->ps_poll_delay, HRTIMER_MODE_REL);	
 		ps_data->ps_distance_last = -1;	
@@ -2590,7 +2587,7 @@ static int stk_ps_tune_zero_func_fae(struct stk3x1x_data *ps_data)
 	int ret, diff;
 	unsigned char value[2];
 			
-	if(ps_data->psi_set || !(ps_data->ps_enabled))
+	if(!(ps_data->ps_enabled))
 	{
 		return 0;
 	}	
@@ -2634,7 +2631,7 @@ static int stk_ps_tune_zero_func_fae(struct stk3x1x_data *ps_data)
 		}	
 	}	
 	diff = ps_data->psa - ps_data->psi;
-	if(diff > STK_MAX_MIN_DIFF)
+	if((diff > STK_MAX_MIN_DIFF) && (ps_data->psi < 100))
 	{
 		ps_data->psi_set = ps_data->psi;
 		ps_data->ps_thd_h = ps_data->psi + STK_HT_N_CT;
