@@ -328,6 +328,11 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	return 0;
 }
 
+void mdss_dsi_panel_bl_ctrl_ex(struct mdss_panel_data *pdata, u32 bl_level)
+{
+	mdss_dsi_panel_bl_ctrl(pdata, bl_level);
+}
+
 static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
@@ -344,7 +349,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	mipi  = &pdata->panel_info.mipi;
-
+	mdss_dsi_panel_bl_ctrl(pdata, 0);
 	if (ctrl->off_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
 
