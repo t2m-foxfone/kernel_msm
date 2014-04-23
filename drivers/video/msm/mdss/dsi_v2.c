@@ -52,6 +52,8 @@ static int dsi_on(struct mdss_panel_data *pdata)
 	return rc;
 }
 
+extern void mdss_dsi_panel_bl_ctrl_ex(struct mdss_panel_data *pdata, u32 bl_level);
+
 static int dsi_panel_handler(struct mdss_panel_data *pdata, int enable)
 {
 	int rc = 0;
@@ -72,6 +74,7 @@ static int dsi_panel_handler(struct mdss_panel_data *pdata, int enable)
 	} else {
 		if (dsi_intf.op_mode_config)
 			dsi_intf.op_mode_config(DSI_CMD_MODE, pdata);
+		mdss_dsi_panel_bl_ctrl_ex(pdata,0);
 		rc = ctrl_pdata->off(pdata);
 		mdss_dsi_panel_reset(pdata, 0);
 		dsi_ctrl_gpio_free(ctrl_pdata);
