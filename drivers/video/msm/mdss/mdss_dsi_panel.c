@@ -275,7 +275,7 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		pr_err("%s: Invalid input data\n", __func__);
 		return;
 	}
-
+	msleep(5);
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
