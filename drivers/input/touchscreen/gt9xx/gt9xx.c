@@ -43,7 +43,11 @@
 #if GTP_ICS_SLOT_REPORT
     #include <linux/input/mt.h>
 #endif
-
+#define Rawdata_test
+#ifdef Rawdata_test
+extern s32 gtp_test_sysfs_init(void);
+extern void gtp_test_sysfs_deinit(void);
+#endif  //test tp
 static const char *goodix_ts_name = "Goodix Capacitive TouchScreen";
 static struct workqueue_struct *goodix_wq;
 struct i2c_client * i2c_connect_client = NULL; 
@@ -56,7 +60,7 @@ u8 config[GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH]
     
 #if GTP_DEBUG_ON
     static const int  key_codes[] = {KEY_HOME, KEY_BACK, KEY_MENU, KEY_SEARCH};
-    static const char *key_names[] = {"Key_Home", "Key_Back", "Key_Menu", "Key_Search"};
+   // static const char *key_names[] = {"Key_Home", "Key_Back", "Key_Menu", "Key_Search"};
 #endif
     
 #endif
@@ -1819,6 +1823,9 @@ static int __devinit goodix_ts_init(void)
     gtp_esd_check_workqueue = create_workqueue("gtp_esd_check");
 #endif
     ret = i2c_add_driver(&goodix_ts_driver);
+#ifdef Rawdata_test
+    gtp_test_sysfs_init();
+#endif
     return ret; 
 }
 
@@ -1839,6 +1846,9 @@ static void __exit goodix_ts_exit(void)
     {
         destroy_workqueue(goodix_wq);
     }
+#ifdef Rawdata_test
+     gtp_test_sysfs_deinit();
+#endif
 }
 
 late_initcall(goodix_ts_init);
