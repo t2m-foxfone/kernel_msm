@@ -119,11 +119,11 @@
     }
 
 
-u16 max_limit_value = 1660;     // screen max limit
-u16 min_limit_value = 290;     // screen min limit
-u16 max_limit_key = 600;       // key_val max limit
-u16 min_limit_key = 500;        // key_val min limit
-u16 uniformity_lmt = 90;        // screen uniformity in percent
+u16 max_limit_value = 1580;     // screen max limit
+u16 min_limit_value = 500;     // screen min limit
+u16 max_limit_key = 1110;       // key_val max limit
+u16 min_limit_key = 560;        // key_val min limit
+u16 uniformity_lmt = 70;        // screen uniformity in percent
 
 #define DSP_SHORT_BURN_CHK          256 // burn short chuck size
 #define _SHORT_INFO_MAX             50  // short test max show 50 pairs short channels
