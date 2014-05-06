@@ -209,7 +209,6 @@ static long pn544_dev_ioctl(struct file *filp,
 			msleep(20);
 		} else  if (arg == 0) {
 			/* power off */
-			return 0;
 			pr_info("%s power off\n", __func__);
 			gpio_set_value(pn544_dev->firm_gpio, 0);
 			gpio_set_value(pn544_dev->ven_gpio, 0);
