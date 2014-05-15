@@ -458,6 +458,7 @@ void msm_dsi_host_init(struct mipi_panel_info *pinfo)
 	data = 0;
 	if (pinfo->rx_eot_ignore)
 		data |= BIT(4);
+		pinfo->tx_eot_append = 1;
 	if (pinfo->tx_eot_append)
 		data |= BIT(0);
 	MIPI_OUTP(ctrl_base + DSI_EOT_PACKET_CTRL, data);
@@ -756,6 +757,139 @@ static struct dsi_cmd_desc pkt_size_cmd = {
 	max_pktsize,
 };
 
+//baoqiang.qin add for esd check
+int msm_dsi_cmds_rx(struct mdss_dsi_ctrl_pdata *ctrl, struct dsi_cmd_desc *cmds, int rlen);
+static char dcs_cmds_panel[2] = {0x0a, 0x00};/* DTYPE_DCS_READ */
+static struct dsi_cmd_desc dcs_read_cmds_panel = {
+	{DTYPE_DCS_READ, 0, 0, 0, 5, sizeof(dcs_cmds_panel)},
+	dcs_cmds_panel
+};
+bool esd_read_cmds_flag=false;
+int msm_dsi_panel_read_registers(struct mdss_dsi_ctrl_pdata *ctrl,char cmd, int rlen, char *rbuf)
+{
+	struct dsi_buf *rp = &ctrl->rx_buf;
+	struct dsi_cmd_desc * cmds;
+	dcs_cmds_panel[0]=cmd;
+	cmds=&dcs_read_cmds_panel;
+	if(ctrl == NULL) {
+		pr_err("%s: Invalid input data.\n",__func__);
+		return -EINVAL;
+	}
+	
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	
+	memset(rp->data, 0, 6);
+	if(ctrl->panel_esd_data.esd_detection_run==true){
+		msm_dsi_cmds_rx(ctrl, cmds, rlen);
+		msm_dsi_cmds_rx(ctrl, cmds, rlen);
+	}
+	if(ctrl->panel_esd_data.esd_panel_name==HX8389B_PANEL){
+		if(cmd!=0x09 && cmd!=0xb6)
+			*rbuf=rp->data[2];
+		else	
+			rbuf=rp->data;
+	}else{
+		rbuf=rp->data;
+	}
+	return 0;
+}
+bool msm_dsi_panel_read_cmds_esd_check(struct mdss_dsi_ctrl_pdata *ctrl)
+{	
+	char *temp;
+	static char reg_buf[4]={0};
+	static int first=0;
+	if(ctrl == NULL) {
+		pr_err("%s: Invalid input data\n",__func__);
+		return -EINVAL;
+	}
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	temp=ctrl->rx_buf.data;	
+	if(ctrl->panel_esd_data.esd_detection_run==true){
+		dsi_set_tx_power_mode(0);
+		msm_dsi_panel_read_registers(ctrl, 0x0a, 1, temp);
+		dsi_set_tx_power_mode(1);
+		if(ctrl->panel_esd_data.esd_detection_run==false)
+			return true;
+		
+		if(first<2){
+			first++;
+			return true;
+		}
+		reg_buf[0]=temp[0];
+		if(reg_buf[0]!=0x9c){			
+			printk("%s:   reg_buf=%x\n",__func__,reg_buf[0]);
+			return false;
+		}
+	}
+	return true;
+}
+#if 1
+static char dcs_cmds_ic[2] = {0xB1, 0x00};/* DTYPE_DCS_READ */
+static struct dsi_cmd_desc dcs_read_cmds_ic = {
+	{DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(dcs_cmds_ic)},
+	dcs_cmds_ic
+};
+static ssize_t msm_dsi_show_readcmds(struct device *dev,
+						struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev=NULL;
+	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
+	struct dsi_buf *rp=NULL;
+	pdev=container_of(dev,struct platform_device,dev);
+	if(pdev==NULL){
+		printk("%s: fail to get platform device!\n",__func__);
+		return 0;
+	}
+	ctrl=platform_get_drvdata( pdev);
+	if(ctrl==NULL){
+		printk("%s: fail to get drvdata of platform device!\n",__func__);
+		return 0;
+	}
+	rp=&ctrl->rx_buf;
+	memset(rp->data,0,20);
+	if(esd_read_cmds_flag==false){
+		dsi_set_tx_power_mode(0);
+		msm_dsi_cmds_rx(ctrl, &dcs_read_cmds_ic, 19);
+		msm_dsi_cmds_rx(ctrl, &dcs_read_cmds_ic, 19);
+		dsi_set_tx_power_mode(1);
+	}
+	return snprintf(buf,100, "\n%x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x,  %x, %x, %x, %x, %x, %x, %x, %x\n",
+						rp->data[0],rp->data[1],rp->data[2],rp->data[3],rp->data[4],rp->data[5],rp->data[6],rp->data[7],
+						rp->data[8],rp->data[9],rp->data[10],rp->data[11],rp->data[12],rp->data[13],	rp->data[14],
+						rp->data[15],rp->data[16],rp->data[17],rp->data[18]);
+}
+static ssize_t msm_dsi_store_readcmds(struct device *dev,
+					struct device_attribute *attr, 
+					const char *buf, size_t size)
+{
+	struct platform_device *pdev=NULL;
+	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
+	pdev=container_of(dev,struct platform_device,dev);
+	if(pdev==NULL){
+		printk("%s: fail to get platform device!\n",__func__);
+		return 0;
+	}
+	ctrl=platform_get_drvdata( pdev);
+	if(ctrl==NULL){
+		printk("%s: fail to get drvdata of platform device!\n",__func__);
+		return 0;
+	}
+	if(strncmp(buf,"0",1) == 0){
+		ctrl->panel_esd_data.esd_detection_run=false;
+		ctrl->panel_esd_enable=false;
+	}
+	else{
+		ctrl->panel_esd_data.esd_detection_run=true;
+		ctrl->panel_esd_enable=true;
+	}
+	return 0;
+}
+static DEVICE_ATTR(readcmds, 0664, msm_dsi_show_readcmds, msm_dsi_store_readcmds);
+#endif
+//baoqiang.qin add end
+
 static int msm_dsi_set_max_packet_size(struct mdss_dsi_ctrl_pdata *ctrl,
 						int size)
 {
@@ -794,12 +928,44 @@ static int msm_dsi_cmds_rx_1(struct mdss_dsi_ctrl_pdata *ctrl,
 	int rc;
 	struct dsi_buf *tp, *rp;
 
+    int data_byte, rx_byte, ret = 0;// dlen;
+	int pkt_size;
+	int  dlen;
+	int  diff;
+	data_byte = 8;	/* first read */
+	/*
+	 * add extra 2 padding bytes to have overall
+	 * packet size is multipe by 4. This also make
+	 * sure 4 bytes dcs headerlocates within a
+	 * 32 bits register after shift in.
+	*/
+	pkt_size = data_byte + 2;
+	rx_byte = data_byte + 8; /* 4 header + 2 crc  + 2 padding*/
 	tp = &ctrl->tx_buf;
 	rp = &ctrl->rx_buf;
 	mdss_dsi_buf_init(rp);
 	mdss_dsi_buf_init(tp);
 
+
+
+	//printk(KERN_ERR"%s:  rlen=%d pkt_size=%d rx_byte=%d\n",
+	//		__func__, rlen, pkt_size, rx_byte);
+
+		max_pktsize[0] = pkt_size;
+		mdss_dsi_buf_init(tp);
+		ret = mdss_dsi_cmd_dma_add(tp, &pkt_size_cmd);
+		if (!ret) {
+			pr_err("%s: failed to add max_pkt_size\n",
+				__func__);
+			rp->len = 0;
+		}
+			msm_dsi_wait4video_eng_busy(ctrl);
+			ret =  msm_dsi_cmd_dma_tx(ctrl, tp);
+		    mdss_dsi_buf_init(tp);
+			
+
 	rc = mdss_dsi_cmd_dma_add(tp, cmds);
+	
 	if (!rc) {
 		pr_err("%s: dsi_cmd_dma_add failed\n", __func__);
 		rc = -EINVAL;
@@ -812,19 +978,55 @@ static int msm_dsi_cmds_rx_1(struct mdss_dsi_ctrl_pdata *ctrl,
 		goto dsi_cmds_rx_1_error;
 	}
 
+	
+//	msm_dsi_set_irq(ctrl, DSI_INTR_CMD_DMA_DONE_MASK);
+//printk(KERN_ERR"TEST 10\n");
 	rc = msm_dsi_cmd_dma_tx(ctrl, tp);
-	if (IS_ERR_VALUE(rc)) {
-		pr_err("%s: msm_dsi_cmd_dma_tx failed\n", __func__);
-		goto dsi_cmds_rx_1_error;
-	}
+//printk(KERN_ERR"TEST 11\n");
 
-	if (rlen <= DSI_SHORT_PKT_DATA_SIZE) {
-		msm_dsi_cmd_dma_rx(ctrl, rp, rlen);
-	} else {
-		msm_dsi_cmd_dma_rx(ctrl, rp, rlen + DSI_HOST_HDR_SIZE);
-		rp->len = rlen + DSI_HOST_HDR_SIZE;
-	}
+//	msm_dsi_clear_irq(ctrl, DSI_INTR_CMD_DMA_DONE_MASK);
+	
+
+
+/*
+		 * once cmd_dma_done interrupt received,
+		 * return data from client is ready and stored
+		 * at RDBK_DATA register already
+		 * since rx fifo is 16 bytes, dcs header is kept at first loop,
+		 * after that dcs header lost during shift into registers
+		 */
+
+		dlen = msm_dsi_cmd_dma_rx(ctrl, rp, rx_byte);
+
+
+
+		if (rlen <= data_byte) {
+			diff = data_byte - rlen;
+		
+		} else {
+			diff = 0;
+			rlen -= data_byte;
+		}
+
+		dlen -= 2; /* 2 padding bytes */
+		dlen -= 2; /* 2 crc */
+		dlen -= diff;
+		rp->data += dlen;	/* next start position */
+		rp->len += dlen;
+		data_byte = 12;	/* NOT first read */
+		pkt_size += data_byte;
+		//printk(KERN_ERR"%s: rp data=%x len=%d dlen=%d diff=%d\n",
+		//	__func__, (int)rp->data, rp->len, dlen, diff);
+
+
+	rp->data = rp->start;
+
+	
 	rc = msm_dsi_parse_rx_response(rp);
+
+
+
+
 
 dsi_cmds_rx_1_error:
 	if (rc)
@@ -1564,6 +1766,13 @@ static int __devinit msm_dsi_probe(struct platform_device *pdev)
 	intf.private = NULL;
 	dsi_register_interface(&intf);
 
+	#if 1  //baoqiang add for esd check
+	rc = device_create_file(&pdev->dev,&dev_attr_readcmds);
+	if(rc==0)
+		printk("%s: success to create device file!\n",__func__);
+	else
+		printk("%s: fail to create device file!\n",__func__);
+	#endif //baoqiang add end
 	msm_dsi_debug_init();
 
 	msm_dsi_ctrl_init(ctrl_pdata);

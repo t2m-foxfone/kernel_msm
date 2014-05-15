@@ -103,6 +103,8 @@
                 qcom,mdss-dsi-lane-map = "lane_map_3012";
 		qcom,mdss-dsi-bllp-eof-power-mode;
 		qcom,mdss-dsi-bllp-power-mode;
+		qcom,mdss-dsi-esd-enable;
+		qcom,mdss-dsi-esd-detect-mode = <1>;
 		qcom,mdss-dsi-lane-0-state;
 		qcom,mdss-dsi-lane-1-state;
 		qcom,mdss-dsi-panel-timings = [8d 24 19 00 34 34 1d 26 2a 03 04 00];

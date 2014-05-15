@@ -159,13 +159,11 @@ static int dsi_parse_gpio(struct platform_device *pdev,
 						__func__, __LINE__);
 
 	ctrl_pdata->disp_te_gpio = -1;
-	if (ctrl_pdata->panel_data.panel_info.mipi.mode == DSI_CMD_MODE) {
-		ctrl_pdata->disp_te_gpio = of_get_named_gpio(np,
+	ctrl_pdata->disp_te_gpio = of_get_named_gpio(np,
 						"qcom,platform-te-gpio", 0);
-		if (!gpio_is_valid(ctrl_pdata->disp_te_gpio))
-			pr_err("%s:%d, Disp_te gpio not specified\n",
+	if (!gpio_is_valid(ctrl_pdata->disp_te_gpio))
+		pr_err("%s:%d, Disp_te gpio not specified\n",
 							__func__, __LINE__);
-	}
 
 	ctrl_pdata->rst_gpio = of_get_named_gpio(np,
 					"qcom,platform-reset-gpio", 0);

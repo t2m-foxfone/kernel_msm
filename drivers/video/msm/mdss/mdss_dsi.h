@@ -210,6 +210,30 @@ struct dsi_kickoff_action {
 	void *data;
 };
 
+// legen-qin add for esd detection
+enum {
+	ESD_TE_DET = 1,
+};
+
+enum {
+	NONE_PANEL,
+	HX8389B_PANEL,
+	NT35517_PANEL,
+};
+
+
+struct mdss_panel_esd_pdata {
+
+	struct workqueue_struct *esd_wq;
+	bool esd_detection_run;
+	bool esd_recovery_run;
+	int esd_pwr_mode_chk;
+	int esd_panel_name;
+	int esd_detect_mode;
+	int te_irq;
+	struct completion te_detected;
+};
+//legen-qin add for esd detection
 struct dsi_drv_cm_data {
 	struct regulator *vdd_vreg;
 	struct regulator *vdd_io_vreg;
@@ -237,6 +261,9 @@ struct mdss_dsi_ctrl_pdata {
 	int (*check_status) (struct mdss_dsi_ctrl_pdata *pdata);
 	void (*cmdlist_commit)(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp);
 	struct mdss_panel_data panel_data;
+	struct mdss_panel_esd_pdata panel_esd_data; //legen add for esd detection
+	struct delayed_work esd_work; //legen add for esd detection
+	bool  panel_esd_enable; //legen add for esd detection
 	unsigned char *ctrl_base;
 	int reg_size;
 	u32 clk_cnt;

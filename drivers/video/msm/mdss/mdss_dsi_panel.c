@@ -27,7 +27,17 @@
 #define DT_CMD_HDR 6
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
+static DECLARE_WAIT_QUEUE_HEAD(esd_thread_wq); //baoqiang.qin add for esd detect
+int esd_thread_timeout=0;
 
+static int mdss_dsi_panel_esd(struct mdss_panel_data *pdata); //baoqiang.qin@tcl.com for esd detect
+//baoqiang.qin add for esd detect
+void wake_up_panel_suspend(void)
+{
+	esd_thread_timeout=1;
+	wake_up(&esd_thread_wq);
+}
+//baoqiang.qin add for esd detected
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	ctrl->pwm_bl = pwm_request(ctrl->pwm_lpg_chan, "lcd-bklt");
@@ -304,6 +314,10 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		break;
 	}
 }
+bool esd_panel_off_flag=false; //legen
+bool queue_work_en=false;  //baoqiang.qin@tcl.com for esd check
+static bool queue_work_runing=false;
+//bool panel_on_flag; //del by yusen.ke.sz@tcl.com for try to fix backlight blink when resume issue
 
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
@@ -323,8 +337,17 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
-
-	pr_debug("%s:-\n", __func__);
+	
+	if(ctrl->panel_esd_enable &&
+			ctrl->panel_esd_data.esd_detection_run==false &&
+			ctrl->panel_esd_data.esd_recovery_run==false){
+		mdss_dsi_panel_esd(pdata); //legen
+		printk("%s: begin to kick off the work after resume!\n",__func__);
+	}
+	//add by yusen.ke.sz@tcl.com at 20140405 for try to fix backlight blink issue
+	msleep(50);
+	//panel_on_flag=true;
+	pr_err("%s:-\n", __func__);
 	return 0;
 }
 
@@ -337,6 +360,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+	static int first_panel_off=0;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -347,16 +371,328 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 				panel_data);
 
 	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	if(queue_work_runing==true)
+		wait_event(esd_thread_wq, esd_thread_timeout);
+	
 
 	mipi  = &pdata->panel_info.mipi;
-	mdss_dsi_panel_bl_ctrl(pdata, 0);
-	if (ctrl->off_cmds.cmd_cnt)
+	pr_info("[%s]:-\n", __func__);//legen
+//baoqiang.qin
+	if(queue_work_en==true){	
+		cancel_delayed_work(&ctrl->esd_work);
+		ctrl->panel_esd_data.esd_detection_run=false;
+		queue_work_en=false;
+		pr_info("%s: begin to cancel the work!\n",__func__);
+	}
+	
+	first_panel_off=1;
+//baoqiang.qin 
+
+	if (ctrl->off_cmds.cmd_cnt && esd_panel_off_flag==false)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
 
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
 
+//baoqiang add for esd check
+
+static int mdss_dsi_esd_panel_on(struct mdss_panel_data *pdata)
+{
+	struct mipi_panel_info *mipi;
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return -EINVAL;
+	}
+
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+				panel_data);
+	
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	
+	mipi  = &pdata->panel_info.mipi;
+
+	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+
+	if (ctrl->on_cmds.cmd_cnt  && ctrl->panel_esd_data.esd_detection_run==true)
+		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
+
+	printk("%s:-\n", __func__);
+	//if(ctrl->panel_esd_enable)
+		//mdss_dsi_panel_esd(pdata); //legen
+		
+	return 0;
+}
+
+static int mdss_dsi_esd_panel_off(struct mdss_panel_data *pdata)
+{
+	struct mipi_panel_info *mipi;
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return -EINVAL;
+	}
+
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+				panel_data);
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	
+	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+
+	mipi  = &pdata->panel_info.mipi;
+
+
+	if (ctrl->off_cmds.cmd_cnt  && ctrl->panel_esd_data.esd_detection_run==true){
+		esd_panel_off_flag=true;
+		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
+		esd_panel_off_flag=false;
+	}
+
+	printk("[%s]:-\n", __func__);//legen
+	return 0;
+}
+
+//baoqiang add for esd checking 20140228
+
+//legen add for esd protection 20140213
+#define MDSS_PANEL_ESD_CHECK_PERIOD msecs_to_jiffies(2000)
+#define MDSS_PANEL_ESD_CHECK_START msecs_to_jiffies(20000)
+#define DCS_CMD_GET_POWER_MODE  0x0A		/*get power_mode */
+#define TE_MONITOR_TO 68
+//#define PANEL_ESD_CHECK_TIME_MAX		10
+static int esd_num;
+static int te_time;
+
+
+extern bool msm_dsi_panel_read_cmds_esd_check(struct mdss_dsi_ctrl_pdata *ctrl);
+
+static int mdss_dsi_panel_regulator_on(struct mdss_panel_data *pdata, u8 enable)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
+	int ret;
+
+	ctrl=container_of(pdata,struct mdss_dsi_ctrl_pdata,panel_data);
+	
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	
+	mutex_lock(&ctrl->mutex);
+	if(enable){
+		ret = msm_dss_enable_vreg(
+			ctrl->power_data.vreg_config,
+			ctrl->power_data.num_vreg,1);
+		if(ret){
+			pr_err("%s: DSI power on failed\n",__func__);
+			mutex_unlock(&ctrl->mutex);
+			return ret;
+		}
+	}
+	else{
+		ret = msm_dss_enable_vreg(
+			ctrl->power_data.vreg_config,
+			ctrl->power_data.num_vreg,0);
+		if(ret){
+			pr_err("%s: DSI power off failed!\n",__func__);
+			mutex_unlock(&ctrl->mutex);
+			return ret;
+		}
+	}
+
+	mutex_unlock(&ctrl->mutex);
+	return ret;
+}
+
+
+static int mdss_dsi_esd_recovery_panel(struct mdss_panel_data *pdata)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
+	//static u32 num;
+
+	//esd_num++;
+	ctrl=container_of(pdata, struct mdss_dsi_ctrl_pdata, panel_data);
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return 0;
+	if(ctrl->panel_esd_data.esd_detection_run==true){
+		esd_num++;
+		printk("legen-%s: panel recovery begin!\n",__func__);
+		ctrl->panel_esd_data.esd_recovery_run=true;
+		mdss_dsi_esd_panel_off(pdata);
+		mdss_dsi_panel_reset(pdata,0);
+		mdss_dsi_panel_regulator_on(pdata, 0);
+		//dsi_off(pdata);
+		msleep(200);
+		//dsi_on(pdata);
+		if(ctrl->panel_esd_data.esd_detection_run==false)
+			return 0;
+		
+		if(ctrl->panel_esd_data.esd_detection_run==true){
+			mdss_dsi_panel_regulator_on(pdata, 1);
+			mdss_dsi_panel_reset(pdata,1);
+			mdss_dsi_esd_panel_on(pdata);
+		}
+		ctrl->panel_esd_data.esd_recovery_run=false;			
+		printk("legen-%s: panel recovery end.the time is %d!\n",__func__,esd_num);
+	}
+	
+	return 0;
+}
+
+static int mdss_dsi_esd_te_monitor(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	int ret;
+	//static bool dropbox_sent;
+	INIT_COMPLETION(ctrl->panel_esd_data.te_detected);
+
+	enable_irq(ctrl->panel_esd_data.te_irq);
+	ret = wait_for_completion_timeout(&ctrl->panel_esd_data.te_detected,
+							msecs_to_jiffies(TE_MONITOR_TO));
+	if(ret ==0){
+		pr_warning("%s: No TE sig for %d usec. Trigger ESD recovery\n",
+				__func__, TE_MONITOR_TO);
+		//printk("[legen-%s]-No TE sig for %d usec. Trigger ESD recovery\n",__func__,TE_MONITOR_TO);
+		te_time++;
+		mdss_dsi_esd_recovery_panel(&ctrl->panel_data);
+		/*
+		if(!dropbox_sent){
+			dropbox_queue_event_text("display_issue",
+								ESD_TE_DROPBOX_MSG,
+								strlen(ESD_TE_DROPBOX_MSG));
+			dropbox_sent = true;
+		}
+		*/
+	}
+	return 0;	
+}
+
+static void mdss_panel_esd_work(struct work_struct *work)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
+	//struct mdss_panel_esd_pdata *esd_data;
+	//u8 pwr_mode=0;
+/*
+	if(pdata == NULL){
+		pr_err("%s: Invalid input data\n",__func__);
+		return -EINVAL;
+	}
+*/
+	ctrl = container_of(work,struct mdss_dsi_ctrl_pdata,esd_work.work);
+	
+	if(ctrl->panel_esd_data.esd_detection_run==false)
+		return ;
+	
+	esd_thread_timeout=0;
+	queue_work_runing=true;
+	
+	if(ctrl->panel_esd_data.esd_detection_run==true){
+		
+		if(!msm_dsi_panel_read_cmds_esd_check(ctrl)){
+		//if(0){
+			//printk("%s: Dsi controller power mode error!\n",__func__);
+			mdss_dsi_esd_recovery_panel(&ctrl->panel_data);	
+			//if(!msm_dsi_panel_read_cmds_esd_check(ctrl))
+				//mdss_dsi_esd_recovery_panel(&ctrl->panel_data);
+		}
+		if(ctrl->panel_esd_data.esd_detect_mode==ESD_TE_DET){
+			//printk("[legen-%s] begin to detect TE sig!\n",__func__);
+			mdss_dsi_esd_te_monitor(ctrl);
+		}
+		//printk("[legen-%s]--panel_power_on=%d\n",__func__,ctrl->panel_data.panel_info.panel_power_on);
+		wake_up_panel_suspend();
+		if(ctrl->panel_esd_data.esd_detection_run==true)
+			queue_delayed_work(ctrl->panel_esd_data.esd_wq, &ctrl->esd_work,
+							MDSS_PANEL_ESD_CHECK_PERIOD);
+	}
+	queue_work_runing=false;
+	//return 0;
+	
+}
+
+static irqreturn_t mdss_panel_esd_te_irq_handler(int irq, void *ctrl_ptr)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl =
+				(struct mdss_dsi_ctrl_pdata *)ctrl_ptr;
+	//printk("legen-%s: is called\n",__func__);
+	complete(&ctrl->panel_esd_data.te_detected);
+	disable_irq_nosync(ctrl->panel_esd_data.te_irq);
+	return IRQ_HANDLED;
+}
+
+static int mdss_dsi_panel_esd_init(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	int ret;
+	struct mdss_panel_esd_pdata *esd_data = &ctrl->panel_esd_data;
+	//struct delayed_work *esd_work = &ctrl->esd_work;
+
+	INIT_DELAYED_WORK_DEFERRABLE(&ctrl->esd_work, mdss_panel_esd_work); //be careful about this, especially the second argument, shouldn't have return value.
+	//INIT_WORK(&(esd_work->work),mdss_panel_esd_work);
+	//init_timer_deferrable(&esd_work->timer);
+	ctrl->disp_te_gpio=12;
+	
+	if(esd_data->esd_detect_mode==ESD_TE_DET){
+		init_completion(&esd_data->te_detected);
+		esd_data->te_irq = gpio_to_irq(ctrl->disp_te_gpio);
+		ret = request_irq(esd_data->te_irq,
+				mdss_panel_esd_te_irq_handler,
+				IRQF_TRIGGER_RISING,"mdss_panel_esd_te",ctrl);
+		if(ret<0){
+			pr_err("%s: mdss_dsi_panel_esd_init  unable to request IRQ %d\n",__func__,ctrl->disp_te_gpio);
+			return -EAGAIN;		
+		}
+		pr_info("[legen-%s]--te_pin=%d-successful to request IRQ---\n",__func__,ctrl->disp_te_gpio);
+	}
+
+	return 0;
+}
+
+static int mdss_dsi_panel_esd(struct mdss_panel_data *pdata)
+{
+	int  ret;
+	static bool esd_work_queue_init;
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+
+	pr_info("%s is called.\n",__func__);
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata, panel_data);
+	if(ctrl->panel_esd_enable && 
+			ctrl->panel_esd_data.esd_detection_run==false &&
+			ctrl->panel_esd_data.esd_recovery_run==false){
+		if(esd_work_queue_init == false){
+			ret = mdss_dsi_panel_esd_init(ctrl);
+			if(ret)
+				return ret;
+			esd_work_queue_init = true;
+		}
+		//printk("--%s--hello!\n",__func__);
+		queue_delayed_work(ctrl->panel_esd_data.esd_wq,&ctrl->esd_work,
+							MDSS_PANEL_ESD_CHECK_START);
+		queue_work_en=true;
+		ctrl->panel_esd_data.esd_detection_run=true;
+		printk("%s: start the ESD work queue.\n",__func__);
+	}
+
+	return 0;
+}
+
+static int mdss_dsi_panel_esd_workqueue_enable(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	if(ctrl->panel_esd_enable){
+		ctrl->panel_esd_data .esd_wq =
+					create_singlethread_workqueue("mdss_panel_esd");
+		if(ctrl->panel_esd_data.esd_wq == NULL){
+			pr_err("%s: failed to create ESD work queue.\n", __func__);
+			ctrl->panel_esd_enable = false;
+		}
+	}else
+		pr_info("MDSS PANEL: ESD detection is disable.\n");
+
+	return 0;
+}
+
+//legen add for esd protection end 20140213
 static void mdss_dsi_parse_lane_swap(struct device_node *np, char *dlane_swap)
 {
 	const char *data;
@@ -825,7 +1161,12 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		"qcom,mdss-dsi-te-check-enable");
 	pinfo->mipi.hw_vsync_mode = of_property_read_bool(np,
 		"qcom,mdss-dsi-te-using-te-pin");
-
+//baoqiang.qin@tcl.com add for esd check
+	ctrl_pdata->panel_esd_enable = of_property_read_bool(np,
+		"qcom,mdss-dsi-esd-enable");
+	rc = of_property_read_u32(np, "qcom,mdss-dsi-esd-detect-mode",&tmp);
+	ctrl_pdata->panel_esd_data.esd_detect_mode = (!rc ? tmp:0);
+//baoqiang.qin@tcl.com add for esd check end
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-h-sync-pulse", &tmp);
 	pinfo->mipi.pulse_mode_hsa_he = (!rc ? tmp : false);
@@ -968,11 +1309,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 
 	pr_debug("%s:%d\n", __func__, __LINE__);
 	panel_name = of_get_property(node, "qcom,mdss-dsi-panel-name", NULL);
-	if (!panel_name)
-		pr_info("%s:%d, Panel name not specified\n",
-						__func__, __LINE__);
-	else
-		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
+	
 
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);
 	if (rc) {
@@ -1007,6 +1344,17 @@ int mdss_dsi_panel_init(struct device_node *node,
 		ctrl_pdata->panel_data.panel_info.partial_update_enabled = 0;
 		ctrl_pdata->partial_update_fnc = NULL;
 	}
+	//baoqiang add for esd detection
+	//if(ctrl_pdata->panel_esd_data.esd_panel_name==NT35517_PANEL)
+		//ctrl_pdata->panel_esd_data.esd_detect_mode=0;
+	//ctrl_pdata->panel_esd_enable=true; //call from device tree
+	ctrl_pdata->panel_esd_data.esd_detection_run=false;
+	ctrl_pdata->panel_esd_data.esd_recovery_run=false;
+	//ctrl_pdata->panel_esd_data.esd_detect_mode=ESD_TE_DET; //called from device tree
+	//ctrl_pdata->disp_te_gpio=12;
+	mdss_dsi_panel_esd_workqueue_enable(ctrl_pdata);
+	//mdss_dsi_panel_esd(&ctrl_pdata->panel_data);
+	//baoqiang add end
 
 	ctrl_pdata->on = mdss_dsi_panel_on;
 	ctrl_pdata->off = mdss_dsi_panel_off;
