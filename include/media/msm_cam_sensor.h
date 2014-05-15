@@ -611,6 +611,12 @@ struct msm_camera_led_cfg_t {
 #define VIDIOC_MSM_SENSOR_GET_AF_STATUS \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 9, uint32_t)
 
+#define VIDIOC_MSM_OTP_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 10, struct sensorb_cfg_data)
+
+#define VIDIOC_MSM_OTP_CLEARBUFF_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 11, struct sensorb_cfg_data)
+
 #define MSM_V4L2_PIX_FMT_META v4l2_fourcc('M', 'E', 'T', 'A') /* META */
 
 #endif /* __LINUX_MSM_CAM_SENSOR_H */
