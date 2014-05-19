@@ -58,7 +58,7 @@
 #define STK_POLL_PS
 #define STK_POLL_ALS		/* ALS interrupt is valid only when STK_PS_INT_MODE = 1	or 4*/
 #define STK_TUNE0
-#define STK_DEBUG_PRINTF
+//#define STK_DEBUG_PRINTF
 //#define SPREADTRUM_PLATFORM
 //#define STK_ALS_FIR
 //#define STK_IRS
@@ -188,7 +188,8 @@
 
 
 #ifdef STK_TUNE0
-	#define STK_MAX_MIN_DIFF	200
+#define STK_MAX_CT_VALUE	1200
+	#define STK_MAX_MIN_DIFF	150
 	#define STK_LT_N_CT	100
 	#define STK_HT_N_CT	150
 #endif	/* #ifdef STK_TUNE0 */
@@ -213,8 +214,8 @@ static struct stk3x1x_platform_data stk3x1x_pfdata={
   .alsctrl_reg = 0x38, 	/* als_persistance=1, als_gain=64X, ALS_IT=50ms */
   .ledctrl_reg = 0xFF,   /* 100mA IRDR, 64/64 LED duty */ 
   .wait_reg = 0x07,    /* 50 ms */   
-  .ps_thd_h =1700, 
-  .ps_thd_l = 1500, 
+  .ps_thd_h =1000,
+  .ps_thd_l = 900,
   .int_pin = sprd_3rdparty_gpio_pls_irq,  
   .transmittance = 500, 
 }; 
@@ -324,6 +325,8 @@ struct stk3x1x_data {
 	uint16_t psa;
 	uint16_t psi;	
 	uint16_t psi_set;	
+	uint16_t ps_high_thd_def;
+	uint16_t ps_low_thd_def;
 	struct hrtimer ps_tune0_timer;	
 	struct workqueue_struct *stk_ps_tune0_wq;
     struct work_struct stk_ps_tune0_work;
@@ -1147,6 +1150,8 @@ static int32_t stk3x1x_enable_ps(struct stk3x1x_data *ps_data, uint8_t enable, u
 	{
 		printk(KERN_INFO "%s: HT=%d,LT=%d\n", __func__, ps_data->ps_thd_h,  ps_data->ps_thd_l);				
 #ifdef STK_TUNE0
+		ps_data->psa = 0x0;
+		ps_data->psi = 0xFFFF;
 		hrtimer_start(&ps_data->ps_tune0_timer, ps_data->ps_tune0_delay, HRTIMER_MODE_REL);
 #endif			
 #ifdef STK_POLL_PS		
@@ -1183,7 +1188,9 @@ static int32_t stk3x1x_enable_ps(struct stk3x1x_data *ps_data, uint8_t enable, u
 			input_sync(ps_data->ps_input_dev);
 			wake_lock_timeout(&ps_data->ps_wakelock, 3*HZ);
 			reading = stk3x1x_get_ps_reading(ps_data);
-			printk(KERN_INFO "%s: ps input event=%d, ps code = %d\n",__func__, near_far_state, reading);	
+#ifdef STK_DEBUG_PRINTF
+			printk(KERN_INFO "%s: ps input event=%d, ps code = %d\n",__func__, near_far_state, reading);
+#endif
 		}
 	}
 	else
@@ -2508,8 +2515,18 @@ static int stk_ps_tune_zero_final(struct stk3x1x_data *ps_data)
 	
 	ps_data->psa = ps_data->ps_stat_data[0];
 	ps_data->psi = ps_data->ps_stat_data[2];							
-	ps_data->ps_thd_h = ps_data->ps_stat_data[1] + STK_HT_N_CT;
-	ps_data->ps_thd_l = ps_data->ps_stat_data[1] + STK_LT_N_CT;		
+
+	if (ps_data->ps_stat_data[1] < STK_MAX_CT_VALUE)
+	{
+		ps_data->ps_thd_h = ps_data->ps_stat_data[1] + STK_HT_N_CT;
+		ps_data->ps_thd_l = ps_data->ps_stat_data[1] + STK_LT_N_CT;
+	}
+	else
+	{
+		ps_data->ps_thd_h = ps_data->ps_high_thd_def;
+		ps_data->ps_thd_l = ps_data->ps_low_thd_def;
+	}
+
 	stk3x1x_set_ps_thd_h(ps_data, ps_data->ps_thd_h);
 	stk3x1x_set_ps_thd_l(ps_data, ps_data->ps_thd_l);				
 	printk(KERN_INFO "%s: set HT=%d,LT=%d\n", __func__, ps_data->ps_thd_h,  ps_data->ps_thd_l);		
@@ -2622,23 +2639,33 @@ static int stk_ps_tune_zero_func_fae(struct stk3x1x_data *ps_data)
 		if(word_data > ps_data->psa)
 		{
 			ps_data->psa = word_data;
+#ifdef STK_DEBUG_PRINTF
 			printk(KERN_INFO "%s: update psa: psa=%d,psi=%d\n", __func__, ps_data->psa, ps_data->psi);
+#endif
 		}
 		if(word_data < ps_data->psi)
 		{
 			ps_data->psi = word_data;	
+#ifdef STK_DEBUG_PRINTF
 			printk(KERN_INFO "%s: update psi: psa=%d,psi=%d\n", __func__, ps_data->psa, ps_data->psi);	
+#endif
 		}	
 	}	
 	diff = ps_data->psa - ps_data->psi;
-	if((diff > STK_MAX_MIN_DIFF) && (ps_data->psi < 100))
+	if(diff > STK_MAX_MIN_DIFF)
 	{
 		ps_data->psi_set = ps_data->psi;
 		ps_data->ps_thd_h = ps_data->psi + STK_HT_N_CT;
 		ps_data->ps_thd_l = ps_data->psi + STK_LT_N_CT;
+		if (ps_data->psi > STK_MAX_CT_VALUE)
+		{
+			ps_data->ps_thd_h = ps_data->ps_high_thd_def;
+			ps_data->ps_thd_l = ps_data->ps_low_thd_def;
+		}
 		stk3x1x_set_ps_thd_h(ps_data, ps_data->ps_thd_h);
 		stk3x1x_set_ps_thd_l(ps_data, ps_data->ps_thd_l);
 #ifdef STK_DEBUG_PRINTF				
+		printk(KERN_INFO "%s: HT=%d,LT=%d\n", __func__, ps_data->ps_thd_h,  ps_data->ps_thd_l);
 		printk(KERN_INFO "%s: FAE tune0 psa-psi(%d) > STK_DIFF found\n", __func__, diff);
 #endif					
 		hrtimer_cancel(&ps_data->ps_tune0_timer);
@@ -3448,6 +3475,8 @@ static int stk3x1x_probe(struct i2c_client *client,
 	ps_data->als_transmittance = plat_data->transmittance;	
 	ps_data->int_pin = plat_data->int_pin;
 	ps_data->use_fir = plat_data->use_fir;
+	ps_data->ps_low_thd_def = plat_data->ps_thd_l;
+	ps_data->ps_high_thd_def = plat_data->ps_thd_h;
 	//modfiy by junfeng.zhou . for not use it
 	ps_data->pdata = plat_data;
 
