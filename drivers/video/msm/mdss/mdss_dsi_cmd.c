@@ -341,7 +341,7 @@ static int mdss_dsi_dcs_read(struct dsi_buf *dp, struct dsi_cmd_desc *cm)
 
 	dchdr = &cm->dchdr;
 	if (cm->payload == 0) {
-		pr_err("%s: NO payload error\n", __func__);
+		printk("%s: NO payload error\n", __func__);
 		return -EINVAL;
 	}
 

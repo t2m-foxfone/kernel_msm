@@ -40,10 +40,29 @@ void wake_up_panel_suspend(void)
 //baoqiang.qin add for esd detected
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
+	int ret;
+
+	if (!gpio_is_valid(ctrl->pwm_pmic_gpio)) {
+		pr_err("%s: pwm_pmic_gpio=%d Invalid\n", __func__,
+				ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
+		return;
+	}
+
+	ret = gpio_request(ctrl->pwm_pmic_gpio, "disp_pwm");
+	if (ret) {
+		pr_err("%s: pwm_pmic_gpio=%d request failed\n", __func__,
+				ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
+		return;
+	}
+
 	ctrl->pwm_bl = pwm_request(ctrl->pwm_lpg_chan, "lcd-bklt");
 	if (ctrl->pwm_bl == NULL || IS_ERR(ctrl->pwm_bl)) {
-		pr_err("%s: Error: lpg_chan=%d pwm request failed",
-				__func__, ctrl->pwm_lpg_chan);
+		pr_err("%s: lpg_chan=%d pwm request failed", __func__,
+				ctrl->pwm_lpg_chan);
+		gpio_free(ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
 	}
 }
 
@@ -104,6 +123,7 @@ u32 mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
 
 	dcs_cmd[0] = cmd0;
 	dcs_cmd[1] = cmd1;
+	printk("\n mdss_dsi_panel_cmd_read %d ,%d \n",dcs_cmd[0],dcs_cmd[1]);
 	memset(&cmdreq, 0, sizeof(cmdreq));
 	cmdreq.cmds = &dcs_read_cmd;
 	cmdreq.cmds_cnt = 1;
@@ -157,6 +177,7 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	cmdreq.cmds = &backlight_cmd;
 	cmdreq.cmds_cnt = 1;
 	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+	//cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -319,6 +340,8 @@ bool queue_work_en=false;  //baoqiang.qin@tcl.com for esd check
 static bool queue_work_runing=false;
 //bool panel_on_flag; //del by yusen.ke.sz@tcl.com for try to fix backlight blink when resume issue
 
+extern bool msm_dsi_panel_read_cmds_esd_check(struct mdss_dsi_ctrl_pdata *ctrl);
+
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
@@ -387,14 +410,13 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	
 	first_panel_off=1;
 //baoqiang.qin 
-
+	mdss_dsi_panel_bl_ctrl(pdata, 0);
 	if (ctrl->off_cmds.cmd_cnt && esd_panel_off_flag==false)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
 
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
-
 //baoqiang add for esd check
 
 static int mdss_dsi_esd_panel_on(struct mdss_panel_data *pdata)
@@ -581,34 +603,29 @@ static void mdss_panel_esd_work(struct work_struct *work)
 	}
 */
 	ctrl = container_of(work,struct mdss_dsi_ctrl_pdata,esd_work.work);
-	
+	pr_debug("%s:ctrl=%p ndx=%d\n",__func__,ctrl,ctrl->ndx);
 	if(ctrl->panel_esd_data.esd_detection_run==false)
 		return ;
-	
+
 	esd_thread_timeout=0;
 	queue_work_runing=true;
 	
 	if(ctrl->panel_esd_data.esd_detection_run==true){
-		
+
 		if(!msm_dsi_panel_read_cmds_esd_check(ctrl)){
-		//if(0){
-			//printk("%s: Dsi controller power mode error!\n",__func__);
 			mdss_dsi_esd_recovery_panel(&ctrl->panel_data);	
-			//if(!msm_dsi_panel_read_cmds_esd_check(ctrl))
-				//mdss_dsi_esd_recovery_panel(&ctrl->panel_data);
 		}
-		if(ctrl->panel_esd_data.esd_detect_mode==ESD_TE_DET){
-			//printk("[legen-%s] begin to detect TE sig!\n",__func__);
+		else if(ctrl->panel_esd_data.esd_detect_mode==ESD_TE_DET){
+			printk("[legen-%s] begin to detect TE sig!\n",__func__);
 			mdss_dsi_esd_te_monitor(ctrl);
 		}
-		//printk("[legen-%s]--panel_power_on=%d\n",__func__,ctrl->panel_data.panel_info.panel_power_on);
 		wake_up_panel_suspend();
 		if(ctrl->panel_esd_data.esd_detection_run==true)
 			queue_delayed_work(ctrl->panel_esd_data.esd_wq, &ctrl->esd_work,
 							MDSS_PANEL_ESD_CHECK_PERIOD);
 	}
 	queue_work_runing=false;
-	//return 0;
+	return;
 	
 }
 
@@ -640,7 +657,7 @@ static int mdss_dsi_panel_esd_init(struct mdss_dsi_ctrl_pdata *ctrl)
 				mdss_panel_esd_te_irq_handler,
 				IRQF_TRIGGER_RISING,"mdss_panel_esd_te",ctrl);
 		if(ret<0){
-			pr_err("%s: mdss_dsi_panel_esd_init  unable to request IRQ %d\n",__func__,ctrl->disp_te_gpio);
+			pr_err("%s:unable to request IRQ %d\n",__func__,ctrl->disp_te_gpio);
 			return -EAGAIN;		
 		}
 		pr_info("[legen-%s]--te_pin=%d-successful to request IRQ---\n",__func__,ctrl->disp_te_gpio);
@@ -680,7 +697,7 @@ static int mdss_dsi_panel_esd(struct mdss_panel_data *pdata)
 static int mdss_dsi_panel_esd_workqueue_enable(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	if(ctrl->panel_esd_enable){
-		ctrl->panel_esd_data .esd_wq =
+		ctrl->panel_esd_data.esd_wq =
 					create_singlethread_workqueue("mdss_panel_esd");
 		if(ctrl->panel_esd_data.esd_wq == NULL){
 			pr_err("%s: failed to create ESD work queue.\n", __func__);

@@ -358,7 +358,7 @@ static int msm_dsi_wait4video_eng_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 	return rc;
 }
 
-void msm_dsi_host_init(struct mipi_panel_info *pinfo)
+void msm_dsi_host_init(struct mdss_dsi_ctrl_pdata *ctrl, struct mipi_panel_info *pinfo) //baoqiang.qin
 {
 	u32 dsi_ctrl, data;
 	unsigned char *ctrl_base = dsi_host_private->dsi_base;
@@ -438,6 +438,7 @@ void msm_dsi_host_init(struct mipi_panel_info *pinfo)
 	MIPI_OUTP(ctrl_base + DSI_COMMAND_MODE_DMA_CTRL, 0x14000000);
 
 	data = 0;
+	//pinfo->tx_eot_append = 1;
 	if (pinfo->te_sel)
 		data |= BIT(31);
 	data |= pinfo->mdp_trigger << 4;/* cmd mdp trigger */
@@ -458,6 +459,7 @@ void msm_dsi_host_init(struct mipi_panel_info *pinfo)
 	data = 0;
 	if (pinfo->rx_eot_ignore)
 		data |= BIT(4);
+	if(ctrl->panel_esd_data.esd_panel_name!=HX8389B_PANEL) //baoqiang.qin
 		pinfo->tx_eot_append = 1;
 	if (pinfo->tx_eot_append)
 		data |= BIT(0);
@@ -525,8 +527,11 @@ void msm_dsi_controller_cfg(int enable)
 	if (readl_poll_timeout((ctrl_base + DSI_STATUS),
 				status,
 				((status & 0x02) == 0),
-				DSI_POLL_SLEEP_US, DSI_POLL_TIMEOUT_US))
+				DSI_POLL_SLEEP_US, DSI_POLL_TIMEOUT_US)) {
 		pr_err("%s: DSI status=%x failed\n", __func__, status);
+		pr_err("%s: Doing sw reset\n", __func__);
+		msm_dsi_sw_reset();
+	}
 
 	/* Check for x_HS_FIFO_EMPTY */
 	if (readl_poll_timeout((ctrl_base + DSI_FIFO_STATUS),
@@ -741,6 +746,7 @@ static int msm_dsi_parse_rx_response(struct dsi_buf *rp)
 		mdss_dsi_long_read_resp(rp);
 		break;
 	default:
+		printk("\n %s,cmd = %d \n \n",__func__,cmd);
 		rc = -EINVAL;
 		pr_warn("%s: Unknown cmd received\n", __func__);
 		break;
@@ -764,6 +770,10 @@ static struct dsi_cmd_desc dcs_read_cmds_panel = {
 	{DTYPE_DCS_READ, 0, 0, 0, 5, sizeof(dcs_cmds_panel)},
 	dcs_cmds_panel
 };
+
+extern u32 mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
+		char cmd1, void (*fxn)(int), char *rbuf, int len);
+
 bool esd_read_cmds_flag=false;
 int msm_dsi_panel_read_registers(struct mdss_dsi_ctrl_pdata *ctrl,char cmd, int rlen, char *rbuf)
 {
@@ -798,6 +808,7 @@ bool msm_dsi_panel_read_cmds_esd_check(struct mdss_dsi_ctrl_pdata *ctrl)
 {	
 	char *temp;
 	static char reg_buf[4]={0};
+	//static char reg_buf_v2[4]={0};
 	static int first=0;
 	if(ctrl == NULL) {
 		pr_err("%s: Invalid input data\n",__func__);
@@ -818,6 +829,7 @@ bool msm_dsi_panel_read_cmds_esd_check(struct mdss_dsi_ctrl_pdata *ctrl)
 			return true;
 		}
 		reg_buf[0]=temp[0];
+		printk("%s:   reg_buf=%x\n",__func__,reg_buf[0]);
 		if(reg_buf[0]!=0x9c){			
 			printk("%s:   reg_buf=%x\n",__func__,reg_buf[0]);
 			return false;
@@ -839,12 +851,10 @@ static ssize_t msm_dsi_show_readcmds(struct device *dev,
 	struct dsi_buf *rp=NULL;
 	pdev=container_of(dev,struct platform_device,dev);
 	if(pdev==NULL){
-		printk("%s: fail to get platform device!\n",__func__);
 		return 0;
 	}
 	ctrl=platform_get_drvdata( pdev);
 	if(ctrl==NULL){
-		printk("%s: fail to get drvdata of platform device!\n",__func__);
 		return 0;
 	}
 	rp=&ctrl->rx_buf;
@@ -868,12 +878,10 @@ static ssize_t msm_dsi_store_readcmds(struct device *dev,
 	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
 	pdev=container_of(dev,struct platform_device,dev);
 	if(pdev==NULL){
-		printk("%s: fail to get platform device!\n",__func__);
 		return 0;
 	}
 	ctrl=platform_get_drvdata( pdev);
 	if(ctrl==NULL){
-		printk("%s: fail to get drvdata of platform device!\n",__func__);
 		return 0;
 	}
 	if(strncmp(buf,"0",1) == 0){
@@ -1035,6 +1043,7 @@ dsi_cmds_rx_1_error:
 	return rc;
 }
 
+
 /* read data length is more than 10 bytes, which requires multiple DSI read*/
 static int msm_dsi_cmds_rx_2(struct mdss_dsi_ctrl_pdata *ctrl,
 				struct dsi_cmd_desc *cmds, int rlen)
@@ -1058,19 +1067,19 @@ static int msm_dsi_cmds_rx_2(struct mdss_dsi_ctrl_pdata *ctrl,
 		mdss_dsi_buf_init(tp);
 		rc = mdss_dsi_cmd_dma_add(tp, cmds);
 		if (!rc) {
-			pr_err("%s: dsi_cmd_dma_add failed\n", __func__);
+			printk("%s: dsi_cmd_dma_add failed\n", __func__);
 			rc = -EINVAL;
 			break;
 	}
 		rc = msm_dsi_wait4video_eng_busy(ctrl);
 		if (rc) {
-			pr_err("%s: wait4video_eng failed\n", __func__);
+			printk("%s: wait4video_eng failed\n", __func__);
 			break;
 		}
 
 		rc = msm_dsi_cmd_dma_tx(ctrl, tp);
 		if (IS_ERR_VALUE(rc)) {
-			pr_err("%s: msm_dsi_cmd_dma_tx failed\n", __func__);
+			printk("%s: msm_dsi_cmd_dma_tx failed\n", __func__);
 			break;
 		}
 
@@ -1102,10 +1111,13 @@ int msm_dsi_cmds_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 {
 	int rc;
 	if (rlen <= DSI_MAX_PKT_SIZE)
-		rc = msm_dsi_cmds_rx_1(ctrl, cmds, rlen);
+		{	
+			rc = msm_dsi_cmds_rx_1(ctrl, cmds, rlen);
+		}
 	else
-		rc = msm_dsi_cmds_rx_2(ctrl, cmds, rlen);
-
+		{
+			rc = msm_dsi_cmds_rx_2(ctrl, cmds, rlen);
+		}
 	return rc;
 }
 
@@ -1159,6 +1171,7 @@ void msm_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 	}
 
 	msm_dsi_clk_ctrl(&ctrl->panel_data, 1);
+	dsi_set_tx_power_mode(0);
 
 	if (0 == (req->flags & CMD_REQ_LP_MODE))
 		dsi_set_tx_power_mode(0);
@@ -1326,7 +1339,7 @@ static int msm_dsi_on(struct mdss_panel_data *pdata)
 	}
 
 	msm_dsi_sw_reset();
-	msm_dsi_host_init(mipi);
+	msm_dsi_host_init(ctrl_pdata,mipi); //baoqiang.qin
 
 	if (mipi->force_clk_lane_hs) {
 		u32 tmp;
