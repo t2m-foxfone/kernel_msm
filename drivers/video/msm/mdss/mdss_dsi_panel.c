@@ -590,7 +590,7 @@ static int mdss_dsi_esd_te_monitor(struct mdss_dsi_ctrl_pdata *ctrl)
 	}
 	return 0;	
 }
-
+static int esd_last_happend  = 0;
 static void mdss_panel_esd_work(struct work_struct *work)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl=NULL;
@@ -610,9 +610,22 @@ static void mdss_panel_esd_work(struct work_struct *work)
 	esd_thread_timeout=0;
 	queue_work_runing=true;
 	
+	if( esd_last_happend )
+	{
+		esd_last_happend = 0;
+		wake_up_panel_suspend();
+		
+		if(ctrl->panel_esd_data.esd_detection_run==true)
+			queue_delayed_work(ctrl->panel_esd_data.esd_wq, &ctrl->esd_work,
+							MDSS_PANEL_ESD_CHECK_PERIOD);
+		queue_work_runing = false;
+		return;
+	}
+	
 	if(ctrl->panel_esd_data.esd_detection_run==true){
 
 		if(!msm_dsi_panel_read_cmds_esd_check(ctrl)){
+			esd_last_happend = 1;
 			mdss_dsi_esd_recovery_panel(&ctrl->panel_data);	
 		}
 		else if(ctrl->panel_esd_data.esd_detect_mode==ESD_TE_DET){
