@@ -183,39 +183,41 @@ static void append_info_line(void)
         kfree(result_lines[RsltIndex]);
     }
 }
-//#define TEST_RAWDATA_MODE       //debug mode
-#define REPORT_RESULT             // not debug mode
+#define TEST_RAWDATA_MODE       //not debug mode
 #ifdef TEST_RAWDATA_MODE
-#define PRINTF_INFO_LINE_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
-                                                   sprintf(tmp_info_line, "<Limit-INFO>"fmt"\n", ##args);\
-                                                   GTP_INFO(fmt, ##args);\
-                                                append_info_line();} while(0)
 
-#else
-#define PRINTF_INFO_LINE_INFO(fmt, args...)       do{ } while(0)
-
-#endif
-
-#ifdef REPORT_RESULT
-#define SET_INFO_LINE_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
+#define REPORT_TEST_RESULT_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
                                                    sprintf(tmp_info_line,fmt"\n", ##args);\
                                                 append_info_line();} while(0)
+
+#define SET_INFO_LINE_INFO(fmt, args...)       do{ } while(0)
+
+#define SET_INFO_LINE_ERR(fmt, args...)       do{ } while(0)
+
+#define PRINTF_INFO_LINE_INFO(fmt, args...)       do{ } while(0)
+
 
 #else
 #define SET_INFO_LINE_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
                                                    sprintf(tmp_info_line, "<Sysfs-INFO>"fmt"\n", ##args);\
                                                    GTP_INFO(fmt, ##args);\
                                                 append_info_line();} while(0)
-#endif    
 
-#ifdef REPORT_RESULT
-#define SET_INFO_LINE_ERR(fmt, args...)       do{ } while(0)
-#else
 #define SET_INFO_LINE_ERR(fmt, args...)        do { memset(tmp_info_line, '\0', 80);\
                                                    sprintf(tmp_info_line, "<Sysfs-ERROR>"fmt"\n", ##args);\
                                                    GTP_ERROR(fmt, ##args);\
                                                    append_info_line();}while(0)
-#endif
+
+#define PRINTF_INFO_LINE_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
+                                                   sprintf(tmp_info_line, "<Limit-INFO>"fmt"\n", ##args);\
+                                                   GTP_INFO(fmt, ##args);\
+                                                append_info_line();} while(0)
+
+
+#define REPORT_TEST_RESULT_INFO(fmt, args...)   do{ } while(0)
+
+#endif    
+
 
 static u8 cfg_drv_order[MAX_DRIVER_NUM];
 static u8 cfg_sen_order[MAX_SENSOR_NUM];
@@ -231,10 +233,10 @@ s32 gt9xx_short_parse_cfg(void)
     u8 drv_num = 0, sen_num = 0;
     
     u8 config[256] = {(u8)(GTP_REG_CONFIG_DATA >> 8), (u8)GTP_REG_CONFIG_DATA, 0};
-
+    
     if (gtp_i2c_read(i2c_connect_client, config, GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH) <= 0)
     {
-		SET_INFO_LINE_ERR("Failed to read config!");
+        SET_INFO_LINE_ERR("Failed to read config!");
         return FAIL;
     }
     
@@ -276,7 +278,7 @@ s32 gt9xx_short_parse_cfg(void)
  *      0xff: the ic channel is not used, otherwise: the tp short channel
  */
 u8 gt9_get_short_tp_chnl(u8 phy_chnl, u8 is_driver)
-{  
+{
     u8 i = 0;
     if (is_driver) {
         for (i = 0; i < MAX_DRIVER_NUM; ++i)
@@ -309,28 +311,26 @@ static s32 gtp_i2c_end_cmd(struct i2c_client *client)
 {
     u8  end_cmd[3] = {GTP_READ_COOR_ADDR >> 8, GTP_READ_COOR_ADDR & 0xFF, 0};
     s32 ret = 0;
-
+    
     ret = gtp_i2c_write(client, end_cmd, 3);
     if (ret < 0)
     {
-#if !defined REPORT_RESULT
         SET_INFO_LINE_INFO("I2C write end_cmd  error!"); 
-#endif
     }
     return ret;
 }
 
 static void gtp_hopping_switch(struct i2c_client *client, s32 on)
-{ 
+{
     s32 j = 0;
     static u8 hopping_enabled = 0;
     u8 chksum = 0;
     u8 config[256] = {(u8)(GTP_REG_CONFIG_DATA >> 8), (u8)GTP_REG_CONFIG_DATA, 0};
     struct goodix_ts_data *ts;
-
+    
     ts = i2c_get_clientdata(client);
     if (gtp_i2c_read(client, config, GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH) <= 0)
-    {  
+    {
         SET_INFO_LINE_ERR("Failed to read config!");
         return;
     }
@@ -373,7 +373,7 @@ static void gtp_hopping_switch(struct i2c_client *client, s32 on)
     }
 }
 static void gtp_open_test_init(struct i2c_client *client)
-{ 
+{
 	u8 sensor_id = 0;
 	u8 tmp[4] = {(u8)(GTP_REG_SENSOR_ID >> 8), (u8)GTP_REG_SENSOR_ID, 0};
 
@@ -411,7 +411,7 @@ static void gtp_open_test_init(struct i2c_client *client)
 
     u8 test_config[GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH] = {(u8)(GTP_REG_CONFIG_DATA >> 8), (u8)GTP_REG_CONFIG_DATA, 0};
 
-
+	
 	if (gtp_i2c_read(client, tmp, 1 + GTP_ADDR_LENGTH) <= 0)
 	{
 		SET_INFO_LINE_ERR("Failed to read sensor id!");
@@ -425,9 +425,7 @@ static void gtp_open_test_init(struct i2c_client *client)
                 GTP_ERROR("Invalid sensor_id(0x%02X), No Config Sent!", sensor_id);
                 return;
          }
-#if !defined REPORT_RESULT		 
 		SET_INFO_LINE_INFO("sensor_id: %d\n", sensor_id);
-#endif
 	}
 
 
@@ -441,13 +439,13 @@ static void gtp_open_test_init(struct i2c_client *client)
 
 		memset(&test_config[GTP_ADDR_LENGTH], 0, GTP_CONFIG_MAX_LENGTH);
     		memcpy(&test_config[GTP_ADDR_LENGTH], send_test_cfg_buf[sensor_id], tset_cfg_info_len[sensor_id]);
-#if !defined REPORT_RESULT			
+
 		SET_INFO_LINE_INFO("max_limit_value: %d\n", max_limit_value);
 		SET_INFO_LINE_INFO("min_limit_value: %d\n", min_limit_value);
 		SET_INFO_LINE_INFO("max_limit_key: %d\n", max_limit_key);
 		SET_INFO_LINE_INFO("min_limit_key: %d\n", min_limit_key);
 		SET_INFO_LINE_INFO("uniformity_lmt %d\n", uniformity_lmt);
-#endif	
+
 		gtp_i2c_write(client, test_config, tset_cfg_info_len[sensor_id] + GTP_ADDR_LENGTH);
 	}
 	else
@@ -465,7 +463,7 @@ s32 gtp_parse_config(struct i2c_client *client)
     u8 key_val = 0;
     u8 config[256] = {(u8)(GTP_REG_CONFIG_DATA >> 8), (u8)GTP_REG_CONFIG_DATA, 0};
     u8 type_buf[12] = {0x80, 0x00};
-
+    
     if (gtp_i2c_read(client, config, GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH) <= 0)
     {
         SET_INFO_LINE_ERR("Failed to read config!");
@@ -524,6 +522,7 @@ s32 gtp_parse_config(struct i2c_client *client)
         key_val = config[GTP_ADDR_LENGTH + GT9_REG_KEY_VAL - GT9_REG_CFG_BEG + i];
         key_pos = key_val%0x08;
         GTP_DEBUG("key_val[%d] = 0x%02x", i+1, key_val);
+		SET_INFO_LINE_INFO("key_val[%d] = 0x%02x\n", i+1, key_val);
         if ((key_pos != 0))
         {
             key_is_isolated = 0;
@@ -564,7 +563,7 @@ s32 gtp_parse_config(struct i2c_client *client)
  *      i2c_write function return 
  */
 s32 gtp_write_register(struct i2c_client * client, u16 reg, u8 val)
-{  
+{
     u8 buf[3];
     buf[0] = (u8) (reg >> 8);
     buf[1] = (u8) reg;
@@ -581,7 +580,7 @@ s32 gtp_write_register(struct i2c_client * client, u16 reg, u8 val)
  *      i2c_read function return
  */
 s32 gtp_read_register(struct i2c_client * client, u16 reg, u8* buf)
-{  
+{
     buf[0] = (u8)(reg >> 8);
     buf[1] = (u8)reg;
     return gup_i2c_read(client, buf, 3);
@@ -609,7 +608,7 @@ s32 gtp_burn_dsp_short(struct i2c_client *client)
     GTP_DEBUG("Start writing dsp_short code");
     opr_buf = (u8*)kmalloc(sizeof(u8) * (DSP_SHORT_BURN_CHK+2), GFP_KERNEL);
     if (!opr_buf)
-    {   
+    {
         SET_INFO_LINE_ERR("failed to allocate memory for check buffer!");
         return FAIL;
     }
@@ -714,7 +713,7 @@ s32 gtp_short_resist_check(struct gt9xx_short_info *short_node)
                     GT9_DRV_HEAD|29, GT9_DRV_HEAD|42 };
     s32 numberator = 0;
     u32 amplifier = 1000;  // amplify 1000 times to emulate float computing
-
+    
     
     // Tx-ABIST & Tx_ABIST
     if ((((master > chnnl_tx[0]) && (master <= chnnl_tx[1])) &&
@@ -783,7 +782,7 @@ s32 gtp_compute_rslt(struct i2c_client *client)
     u8 rx_short_num = 0;
     
     u8 master, slave;
-
+    
     self_data = (u16*)kmalloc(sizeof(u16) * ((MAX_DRIVER_NUM + MAX_SENSOR_NUM)), GFP_KERNEL);
     result_buf = (u8*)kmalloc(sizeof(u8) * (data_len+2), GFP_KERNEL);
     short_sum = (struct gt9xx_short_info *) kmalloc(sizeof(struct gt9xx_short_info) * _SHORT_INFO_MAX, GFP_KERNEL);
@@ -996,12 +995,10 @@ s32 gtp_compute_rslt(struct i2c_client *client)
         {
             for (i = 0; i < node_idx; ++i)
             {
-            #if !defined REPORT_RESULT	
                 SET_INFO_LINE_INFO("  %s%02d & %s%02d Shorted! (R = %dKOhm)",
                 (short_sum[i].master_is_driver) ? "Drv" : "Sen", short_sum[i].master,
                 (short_sum[i].slave_is_driver) ? "Drv" : "Sen", short_sum[i].slave,
                 short_sum[i].impedance);
-			#endif
             }
             ret = FAIL;
         }
@@ -1023,7 +1020,7 @@ s32 gt9_test_gnd_vdd_short(struct i2c_client *client)
     u32 short_res = 0;
     u8 short_chnl = 0;
     u16 amplifier = 1000;
-
+    
     data = (u8 *)kmalloc(sizeof(u8) * (len + 2), GFP_KERNEL);
     if (NULL == data)
     {
@@ -1078,10 +1075,8 @@ s32 gt9_test_gnd_vdd_short(struct i2c_client *client)
                     }
                     else
                     {
-#if !defined REPORT_RESULT	
                         SET_INFO_LINE_INFO("  Drv%02d & GND/VDD Shorted! (R = %dKOhm)", short_chnl, short_res/amplifier);
-#endif
-					}
+                    }
                 } 
                 else
                 {
@@ -1093,10 +1088,8 @@ s32 gt9_test_gnd_vdd_short(struct i2c_client *client)
                     }
                     else
                     {
-#if !defined REPORT_RESULT	
                         SET_INFO_LINE_INFO("  Sen%02d & GND/VDD Shorted! (R = %dKOhm)", short_chnl, short_res/amplifier);
-#endif
-					}
+                    }
                 }
                 ret = FAIL;
             }
@@ -1111,14 +1104,13 @@ s32 gt9_test_gnd_vdd_short(struct i2c_client *client)
  */
 void gt9xx_leave_short_test(struct i2c_client *client)
 {
+    
     gtp_reset_guitar(client, 20);
     msleep(100);
 
     gtp_send_cfg(client);
-#if !defined REPORT_RESULT
     SET_INFO_LINE_INFO("");
     SET_INFO_LINE_INFO("---gtp short test end---");
-#endif	
 }
 
 
@@ -1141,26 +1133,23 @@ s32 gt9xx_short_test(struct i2c_client * client)
     struct goodix_ts_data *ts;
     u8 retry_load = 0;
     u8 old_i2c_addr = client->addr;
-	
+    
     ts = i2c_get_clientdata(i2c_connect_client);
     //gtp_irq_disable(ts);
     disable_irq(ts->client->irq);
 #if GTP_ESD_PROTECT
-    ts->gtp_is_suspend = 1;     // suspend esd
+	gtp_esd_switch(client, SWITCH_OFF);
+   // ts->gtp_is_suspend = 1;     // suspend esd
 #endif
-#if !defined REPORT_RESULT
     // step 1: reset guitar, delay 1ms,  hang up ss51 and dsp
     SET_INFO_LINE_INFO("---gtp short test---");
     SET_INFO_LINE_INFO("Step 1: reset guitar, hang up ss51 dsp");
-#endif    
+    
     ret = gt9xx_short_parse_cfg();
     if (FAIL == ret)
     {
-#if defined REPORT_RESULT	
-		SET_INFO_LINE_INFO("fail");
-#else    
+		REPORT_TEST_RESULT_INFO("fail");   
         SET_INFO_LINE_ERR("You May check your IIC connection.");
-#endif
         goto short_test_exit;
     }
     
@@ -1196,11 +1185,8 @@ load_dsp_again:
     }
     if (i >= 200)
     {
-#if defined REPORT_RESULT	
-		SET_INFO_LINE_INFO("fail");
-#else     
+		REPORT_TEST_RESULT_INFO("fail");  
         SET_INFO_LINE_ERR("Failed to init short test mode");
-#endif
         goto short_test_exit;
     }
     msleep(10);
@@ -1233,11 +1219,8 @@ load_dsp_again:
     }
     if(retry >= 200)
     {
-#if defined REPORT_RESULT	
-		SET_INFO_LINE_INFO("fail");
-#else     
+		REPORT_TEST_RESULT_INFO("fail");   
         SET_INFO_LINE_ERR("Enter update Hold ss51 failed.");
-#endif
         goto short_test_exit;
     }
     
@@ -1263,21 +1246,17 @@ load_dsp_again:
         }
         else
         {
-#if defined REPORT_RESULT	
-		    SET_INFO_LINE_INFO("fail");
-#else         
+		    REPORT_TEST_RESULT_INFO("fail");       
             SET_INFO_LINE_INFO("Step 2: burn dsp_short code");
             SET_INFO_LINE_ERR("burn dsp_short Timeout!");
-#endif			
             goto short_test_exit;
         }
     } 
-#if !defined REPORT_RESULT	    
+    
     SET_INFO_LINE_INFO("Step 2: burn dsp_short code");
     
     // step3: run dsp_short, read results
     SET_INFO_LINE_INFO("Step 3: run dsp_short code, confirm it's runnin'");
-#endif	
     gtp_write_register(client, _rRW_MISCTL__SHORT_BOOT_FLAG, 0x00); // clear dsp_short running flag
     gtp_write_register(client, _rRW_MISCTL__BOOT_OPT_B0_, 0x03);//set scramble
     
@@ -1300,19 +1279,14 @@ load_dsp_again:
         ++i;
         if (i >= 20)
         {
-#if defined REPORT_RESULT	
-		    SET_INFO_LINE_INFO("fail");
-#else         
+		    REPORT_TEST_RESULT_INFO("fail");      
             SET_INFO_LINE_ERR("step 3: dsp is not running!");
-#endif
             goto short_test_exit;
         }
         msleep(10);
     }
-#if !defined REPORT_RESULT		
     // step4: host configure ic, get test result
     SET_INFO_LINE_INFO("Step 4: host config ic, get test result");
-#endif
     // Short Threshold
     GTP_DEBUG(" Short Threshold: 10");
     opr_buf[0] = 0x88;
@@ -1405,11 +1379,8 @@ load_dsp_again:
         msleep(50);
         if ( i > 100 )
         {
-#if defined REPORT_RESULT	
-		    SET_INFO_LINE_INFO("fail");
-#else         
+		    REPORT_TEST_RESULT_INFO("fail");      
             SET_INFO_LINE_ERR("step 4: inquiry test status timeout!");
-#endif
             goto short_test_exit;
         }
     }
@@ -1423,13 +1394,12 @@ load_dsp_again:
     */
     gtp_read_register(client, 0x8801, opr_buf);
     GTP_DEBUG("short_flag = 0x%02X", opr_buf[2]);
-#if !defined REPORT_RESULT		
     SET_INFO_LINE_INFO("");
     SET_INFO_LINE_INFO("Short Test Result:");
-#endif
     if ((opr_buf[2] & 0x0f) == 0)
     {
-        SET_INFO_LINE_INFO("pass");
+        REPORT_TEST_RESULT_INFO("pass");
+		SET_INFO_LINE_INFO("  PASS!");
         ret = SUCCESS;
     }
     else 
@@ -1442,7 +1412,8 @@ load_dsp_again:
         ret = gtp_compute_rslt(client);
         if (ret == SUCCESS && ret2 == SUCCESS)
         {
-            SET_INFO_LINE_INFO("pass");
+            REPORT_TEST_RESULT_INFO("pass");
+            SET_INFO_LINE_INFO("  PASS!");			
             ret = SUCCESS;
         }
         else
@@ -1460,7 +1431,8 @@ load_dsp_again:
     enable_irq(ts->client->irq);
 
 #if GTP_ESD_PROTECT
-    ts->gtp_is_suspend = 0;     // resume esd
+	gtp_esd_switch(client, SWITCH_ON);
+   // ts->gtp_is_suspend = 0;     // resume esd
 #endif
     return ret;
     
@@ -1474,7 +1446,8 @@ short_test_exit:
     //gtp_irq_enable(ts);
     enable_irq(ts->client->irq);
 #if GTP_ESD_PROTECT
-    ts->gtp_is_suspend = 0;     // resume esd
+	gtp_esd_switch(client, SWITCH_ON);
+   // ts->gtp_is_suspend = 0;     // resume esd
 #endif
     return FAIL;    
 }
@@ -1523,6 +1496,7 @@ s32 gt9_read_coor_cmd(struct i2c_client *client)
 {
     u8 raw_cmd[3] = {(u8)(GTP_REG_READ_RAW >> 8), (u8)GTP_REG_READ_RAW, 0x0};
     s32 ret = -1;
+    
     ret = gtp_i2c_write(client, raw_cmd, 3);
     if (ret < 0)
     {
@@ -1565,6 +1539,7 @@ s32 gtp_read_rawdata(struct i2c_client* client, u16* data)
         SET_INFO_LINE_ERR("Invalid raw buffer.");
         goto have_error;
     }
+    
     msleep(10);
     while (retry++ < GTP_WAIT_RAW_MAX_TIMES)
     {
@@ -1656,6 +1631,7 @@ have_error:
 static s32 gtp_raw_test_init(void)
 {
     u16 i = 0;
+      
     test_rslt_buf = (s32*) kmalloc(sizeof(s32)*GTP_OPEN_SAMPLE_NUM, GFP_ATOMIC);  
     touchpad_sum = (struct gt9xx_open_info*) kmalloc(sizeof(struct gt9xx_open_info) * (4 * _BEYOND_INFO_MAX + 1), GFP_ATOMIC);
     if (NULL == test_rslt_buf || NULL == touchpad_sum)
@@ -1690,6 +1666,7 @@ static void gtp_raw_min_test(u16 *raw_buf)
     u8 driver, sensor;
     u8 sum_base = 1 * _BEYOND_INFO_MAX;
     u8 new_flag = 0;
+    
     for (i = 0; i < gt9xx_sc_pxl_cnt; i++)
     {
         if (raw_buf[i] < min_limit_value)
@@ -1744,6 +1721,7 @@ static void gtp_raw_max_test(u16 *raw_buf)
     u8 driver, sensor;
     u8 sum_base = 0 * _BEYOND_INFO_MAX;
     u8 new_flag = 0;
+    
     for (i = 0; i < gt9xx_sc_pxl_cnt; i++)
     {
         if (raw_buf[i] > max_limit_value)
@@ -1799,10 +1777,12 @@ static void gtp_key_max_test(u16 *raw_buf)
     u8 driver, sensor;
     u8 sum_base = 2 * _BEYOND_INFO_MAX;
     u8 new_flag = 0;
+    
     driver = gt9xx_drv_num-1;
     for (i = gt9xx_sc_pxl_cnt; i < gt9xx_pixel_cnt; ++i)
     {
         sensor = ((i)%gt9xx_sen_num); 
+		//printk("max_key:%d,i=%d\n",raw_buf[i],i);
         if (key_is_isolated)
         { 
             if ((key_iso_pos[j] != sensor) || (key_cnt == 0))
@@ -1815,9 +1795,9 @@ static void gtp_key_max_test(u16 *raw_buf)
                 ++j;
             }
         }
-        if (raw_buf[i] > max_limit_key)
+        if (raw_buf[i] > max_limit_key)//i=181
         {
-            PRINTF_INFO_LINE_INFO("max_key:%d\n",raw_buf[i]);
+            PRINTF_INFO_LINE_INFO("max_key:%d,i=%d\n",raw_buf[i],i);
             test_rslt_buf[rslt_buf_idx] |= _BEYOND_KEY_MAX_LMT;
             new_flag = 0;
             for (k = sum_base; k < (sum_base+_BEYOND_INFO_MAX); ++k)
@@ -1869,10 +1849,12 @@ static void gtp_key_min_test(u16 *raw_buf)
     u8 driver, sensor;
     u8 sum_base = 3 * _BEYOND_INFO_MAX;
     u8 new_flag = 0;
+    
     driver = gt9xx_drv_num-1;
     for (i = gt9xx_sc_pxl_cnt; i < gt9xx_pixel_cnt; ++i)
     {
         sensor = (i%gt9xx_sen_num); 
+		//printk("max_key:%d,i=%d\n",raw_buf[i],i);
         if (key_is_isolated)
         {
             //GTP_DEBUG("sensor: %d, key_iso_pos[j]: %d", sensor, key_iso_pos[j]);
@@ -1887,9 +1869,9 @@ static void gtp_key_min_test(u16 *raw_buf)
             }
         }
     
-        if (raw_buf[i] < min_limit_key)
+        if (raw_buf[i] < min_limit_key) //i=181
         {
-            PRINTF_INFO_LINE_INFO("min key:%d\n",raw_buf[i]);
+            PRINTF_INFO_LINE_INFO("min key:%d,i=%d\n",raw_buf[i],i);
             test_rslt_buf[rslt_buf_idx] |= _BEYOND_KEY_MIN_LMT;
             new_flag = 0;
             for (k = sum_base; k < (sum_base + _BEYOND_INFO_MAX); ++k)
@@ -1933,6 +1915,7 @@ static void gtp_uniformity_test(u16 *raw_buf)
     u8 sum_base = 4 * _BEYOND_INFO_MAX;
     u16 min_val = 0, max_val = 0;
     u16 uniformity = 0;
+    
     min_val = raw_buf[0];
     max_val = raw_buf[0];
     for (i = 1; i < gt9xx_sc_pxl_cnt; i++)
@@ -2036,6 +2019,7 @@ static s32 gtp_get_test_result(void)
     u16 beyond_uniformity = 0;      // uniformity test failed times
     
     s32 result = _CHANNEL_PASS;
+    
 #if GTP_DEBUG_ON
     for (i = 0; i < 4 * _BEYOND_INFO_MAX; ++i)
     {
@@ -2080,26 +2064,20 @@ static s32 gtp_get_test_result(void)
     {
         result |= _BEYOND_MAX_LIMIT;
         j = 0;
-#if !defined REPORT_RESULT
         SET_INFO_LINE_INFO("Beyond Max Limit Points Info: ");
-#endif
         for (i = 0; i < _BEYOND_INFO_MAX; ++i)
         {
             if (touchpad_sum[i].driver == 0xFF)
             {
                 break;
             }
-#if !defined REPORT_RESULT
             SET_INFO_LINE_INFO("  Drv: %d, Sen: %d RawVal: %d", touchpad_sum[i].driver, touchpad_sum[i].sensor, touchpad_sum[i].raw_val);
-#endif
         }
     }
     if (beyond_min_num > _MIN_ERROR_NUM)
     {
         result |= _BEYOND_MIN_LIMIT;
-#if !defined REPORT_RESULT
         SET_INFO_LINE_INFO("Beyond Min Limit Points Info:");
-#endif		
         j = 0;
         for (i = _BEYOND_INFO_MAX; i < (2*_BEYOND_INFO_MAX); ++i)
         {
@@ -2107,9 +2085,7 @@ static s32 gtp_get_test_result(void)
             {
                 break;
             }
-#if !defined REPORT_RESULT
             SET_INFO_LINE_INFO("  Drv: %d, Sen: %d RawVal: %d", touchpad_sum[i].driver, touchpad_sum[i].sensor, touchpad_sum[i].raw_val);
-#endif
         }
     }
     
@@ -2118,35 +2094,27 @@ static s32 gtp_get_test_result(void)
         if (beyond_key_max > _MIN_ERROR_NUM)
         {
             result |= _BEYOND_KEY_MAX_LMT;
-#if !defined REPORT_RESULT
             SET_INFO_LINE_INFO("Beyond Key Max Limit Key Info:");
-#endif
             for (i = 2*_BEYOND_INFO_MAX; i < (3*_BEYOND_INFO_MAX); ++i)
             {
                 if (touchpad_sum[i].driver == 0xFF)
                 {
                     break;
                 }
-#if !defined REPORT_RESULT
                 SET_INFO_LINE_INFO("  Drv: %d, Sen: %d RawVal: %d", touchpad_sum[i].driver, touchpad_sum[i].sensor, touchpad_sum[i].raw_val);
-#endif
             }
         }
         if (beyond_key_min > _MIN_ERROR_NUM)
         {
-            result |= _BEYOND_KEY_MIN_LMT;      
-#if !defined REPORT_RESULT
+            result |= _BEYOND_KEY_MIN_LMT;       
             SET_INFO_LINE_INFO("Beyond Key Min Limit Key Info:");
-#endif
             for (i = 3*_BEYOND_INFO_MAX; i < (4*_BEYOND_INFO_MAX); ++i)
             {
                 if (touchpad_sum[i].driver == 0xFF)
                 {
                     break;
                 }
-#if !defined REPORT_RESULT
                 SET_INFO_LINE_INFO("  Drv: %d, Sen: %d RawVal: %d", touchpad_sum[i].driver, touchpad_sum[i].sensor, touchpad_sum[i].raw_val);
-#endif
             }
         }      
     }
@@ -2154,25 +2122,18 @@ static s32 gtp_get_test_result(void)
     if (beyond_uniformity > _MIN_ERROR_NUM)
     {
         result |= _BEYOND_UNIFORMITY_LMT;
-#if !defined REPORT_RESULT
         SET_INFO_LINE_INFO("Beyond Uniformity Limit Info: ");
         SET_INFO_LINE_INFO("  Uniformity Limit: %d%%, Tp Uniformity: %d%%", uniformity_lmt, touchpad_sum[4*_BEYOND_INFO_MAX].raw_val / touchpad_sum[4 * _BEYOND_INFO_MAX].times);
-#endif
-	}
+    }
     
     if (result == 0)
     {
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("pass");
-#else
+        REPORT_TEST_RESULT_INFO("pass");
         SET_INFO_LINE_INFO("[TEST SUCCEED]: ");
         SET_INFO_LINE_INFO("\tThe TP is OK!");
-#endif
         return result;
     }
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("fail");
-#else
+        REPORT_TEST_RESULT_INFO("fail");
         SET_INFO_LINE_INFO("[TEST FAILED]:");
     if (result & _BEYOND_MAX_LIMIT)
     {
@@ -2187,11 +2148,11 @@ static s32 gtp_get_test_result(void)
     {
         if (result & _BEYOND_KEY_MAX_LMT)
         {
-            SET_INFO_LINE_INFO("  Beyond KeyVal Max Limit [Key Max Limit: %d]", max_limit_key);	
+            SET_INFO_LINE_INFO("  Beyond KeyVal Max Limit [Key Max Limit: %d]", max_limit_key);
         }
         if (result & _BEYOND_KEY_MIN_LMT)
         {
-            SET_INFO_LINE_INFO("  Beyond KeyVal Min Limit [Key Min Limit: %d]", min_limit_key);	
+            SET_INFO_LINE_INFO("  Beyond KeyVal Min Limit [Key Min Limit: %d]", min_limit_key);
         }
     }
    
@@ -2199,7 +2160,6 @@ static s32 gtp_get_test_result(void)
     {
         SET_INFO_LINE_INFO("  Beyond Uniformity Limit [Uniformity Limit: %d%%]", uniformity_lmt);
     }
-#endif	
     return result;
 }
 
@@ -2220,16 +2180,17 @@ s32 gt9xx_open_test(struct i2c_client * client)
     s32 ret = FAIL; // SUCCESS, FAIL
     struct goodix_ts_data *ts;
     u16 *raw_buf = NULL;
+    
     ts = i2c_get_clientdata(client);
     gtp_irq_disable(ts);
 #if GTP_ESD_PROTECT
-    ts->gtp_is_suspend = 1;     // suspend esd
+	gtp_esd_switch(client, SWITCH_OFF);
+  //  ts->gtp_is_suspend = 1;     // suspend esd
 #endif
     ts->gtp_rawdiff_mode = 1;
-#if !defined REPORT_RESULT
+    
     SET_INFO_LINE_INFO("---gtp open test---");
     GTP_INFO("Parsing configuration...");
-#endif
     //gtp_hopping_switch(client, 0);
     
     gtp_open_test_init(client);
@@ -2237,22 +2198,16 @@ s32 gt9xx_open_test(struct i2c_client * client)
     ret = gtp_parse_config(client);
     if (ret == FAIL)
     {
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("fail");
-#else
+        REPORT_TEST_RESULT_INFO("fail");
         SET_INFO_LINE_ERR("failed to parse config...");
-#endif
         ret = FAIL;
         goto open_test_exit;
     }
     raw_buf = (u16*)kmalloc(sizeof(u16)* (gt9xx_drv_num*gt9xx_sen_num), GFP_KERNEL);
     if (NULL == raw_buf)
     {
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("fail");
-#else    
+        REPORT_TEST_RESULT_INFO("fail");  
         SET_INFO_LINE_ERR("failed to allocate mem for raw_buf!");
-#endif
         ret = FAIL;
         goto open_test_exit;
     }
@@ -2262,22 +2217,16 @@ s32 gt9xx_open_test(struct i2c_client * client)
     ret = gtp_raw_test_init();//test_rslt_buf =0
     if (FAIL == ret)
     {
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("fail");
-#else    
+        REPORT_TEST_RESULT_INFO("fail");  
         SET_INFO_LINE_ERR("Allocate memory for open test failed!");
-#endif
         ret = FAIL;
         goto open_test_exit;
     }
     ret = gt9_read_raw_cmd(client);
     if (ret == FAIL)
     {
-#if defined REPORT_RESULT
-        SET_INFO_LINE_INFO("fail");
-#else    
+        REPORT_TEST_RESULT_INFO("fail"); 
         SET_INFO_LINE_ERR("Send Read Rawdata Cmd failed!");
-#endif
         ret = FAIL;
         goto open_test_exit;
     }
@@ -2286,14 +2235,10 @@ s32 gt9xx_open_test(struct i2c_client * client)
     {   
         rslt_buf_idx = i;
         ret = gtp_read_rawdata(client, raw_buf);
-
         if (ret == FAIL)
         {
-#if defined REPORT_RESULT
-            SET_INFO_LINE_INFO("fail");
-#else        
+            REPORT_TEST_RESULT_INFO("fail"); 
             SET_INFO_LINE_ERR("Read Rawdata failed!");
-#endif
             ret = FAIL;
             goto open_test_exit;
         }
@@ -2304,10 +2249,8 @@ s32 gt9xx_open_test(struct i2c_client * client)
             continue;
         }
     }
-#if !defined REPORT_RESULT
     GTP_INFO("Step 3: Analyse Result");
     SET_INFO_LINE_INFO("Total %d Sample Data, Max Show %d Info for each Test Item", GTP_OPEN_SAMPLE_NUM, _BEYOND_INFO_MAX);
-#endif
     if (0 == gtp_get_test_result())
     {
         ret = SUCCESS; 
@@ -2334,16 +2277,16 @@ open_test_exit:
     }
     gtp_irq_enable(ts);
 #if GTP_ESD_PROTECT
-    ts->gtp_is_suspend = 0;     // resume esd
+	gtp_esd_switch(client, SWITCH_ON);
+   // ts->gtp_is_suspend = 0;     // resume esd
 #endif
     ts->gtp_rawdiff_mode = 0;
     gt9_read_coor_cmd(client);	// back to read coordinates data 
- #if !defined REPORT_RESULT
     SET_INFO_LINE_INFO("---gtp open test end---");
- #endif
     //gtp_hopping_switch(client, 1);
     msleep(50);
     gtp_send_cfg(client);//
+    msleep(500);
     return ret;
 }
 
@@ -2366,7 +2309,7 @@ static ssize_t gtp_sysfs_shorttest_show(struct device *dev,struct device_attribu
 }
 
 static ssize_t gtp_sysfs_shorttest_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
-{  
+{
     return -EPERM;
 }
 
@@ -2374,7 +2317,7 @@ static ssize_t gtp_sysfs_opentest_show(struct device *dev,struct device_attribut
 {
     s32 index;
     ssize_t len;
-
+    
     gt9xx_open_test(i2c_connect_client);
     
     for (index = 0, len = 0; index < RsltIndex; ++index)
@@ -2388,7 +2331,7 @@ static ssize_t gtp_sysfs_opentest_show(struct device *dev,struct device_attribut
 }
 
 static ssize_t gtp_sysfs_opentest_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
-{ 
+{
     return -EPERM;
 }
 static DEVICE_ATTR(shorttest, S_IRUGO|S_IWUSR, gtp_sysfs_shorttest_show, gtp_sysfs_shorttest_store);
@@ -2408,9 +2351,7 @@ s32 gtp_test_sysfs_init(void)
     s32 ret ;
 
     goodix_debug_kobj = kobject_create_and_add("gtp_test", NULL) ;
-#if !defined REPORT_RESULT	
     SET_INFO_LINE_INFO("Starting initializing gtp_debug_sysfs");
-#endif
     if (goodix_debug_kobj == NULL)
     {
         GTP_ERROR("%s: subsystem_register failed\n", __func__);
