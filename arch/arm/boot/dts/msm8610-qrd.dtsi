@@ -168,7 +168,7 @@
 			stk,transmittance = <250>;
 			stk,state-reg = <0x00>;
 			stk,psctrl-reg = <0xB1>;
-			stk,alsctrl-reg = <0x38>;
+			stk,alsctrl-reg = <0x28>;
 			stk,ledctrl-reg = <0xFF>;
 			stk,wait-reg = <0x07>;
 			stk,ps-thdh = <1000>;
