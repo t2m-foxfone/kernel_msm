@@ -23,6 +23,7 @@
 #include <linux/input.h>
 #include <linux/log2.h>
 #include <linux/qpnp/power-on.h>
+#include <linux/wakelock.h>
 
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
@@ -88,6 +89,7 @@
 #define QPNP_KEY_STATUS_DELAY			msecs_to_jiffies(250)
 #define QPNP_PON_REV_B				0x01
 
+#define KEY_PRESS_DOWN                          1
 enum pon_type {
 	PON_KPDPWR,
 	PON_RESIN,
@@ -120,6 +122,7 @@ struct qpnp_pon {
 };
 
 static struct qpnp_pon *sys_reset_dev;
+static struct wake_lock powerkey_wakelock;
 
 static u32 s1_delay[PON_S1_COUNT_MAX + 1] = {
 	0 , 32, 56, 80, 138, 184, 272, 408, 608, 904, 1352, 2048,
@@ -355,6 +358,10 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 		return -EINVAL;
 	}
 
+	if ((KEY_PRESS_DOWN == (pon_rt_sts & pon_rt_bit))
+		&& !wake_lock_active(&powerkey_wakelock)) {
+		wake_lock_timeout(&powerkey_wakelock, HZ/2);
+	}
 	input_report_key(pon->pon_input, cfg->key_code,
 					(pon_rt_sts & pon_rt_bit));
 	input_sync(pon->pon_input);
@@ -1102,6 +1109,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 		return rc;
 	}
 
+	wake_lock_init(&powerkey_wakelock, WAKE_LOCK_SUSPEND, "powerkey_wakelock");
 	return rc;
 }
 
@@ -1113,6 +1121,7 @@ static int qpnp_pon_remove(struct spmi_device *spmi)
 
 	if (pon->pon_input)
 		input_unregister_device(pon->pon_input);
+	wake_lock_destroy(&powerkey_wakelock);
 
 	return 0;
 }
