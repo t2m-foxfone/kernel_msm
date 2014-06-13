@@ -223,6 +223,11 @@
 #define KPDBL_MODULE_DIS		0x00
 #define KPDBL_MODULE_EN_MASK		0x80
 
+/*
+ * 149 value come from hardware/qcom/display/liblight/lights.c function rgb_to_brightness
+ * when led go green
+*/
+#define LED_GREEN  149
 /**
  * enum qpnp_leds - QPNP supported led ids
  * @QPNP_ID_WLED - White led backlight
@@ -698,7 +703,7 @@ static int qpnp_led_chg_set(struct qpnp_led_data *led)
 
         if (level > WLED_MAX_LEVEL)
                 level = WLED_MAX_LEVEL;
-        if (level == 0)
+       if ((level == 0) || (level == LED_GREEN))
                 qpnp_led_atc_off(led);
         else
                 qpnp_led_atc_on(led);
