@@ -56,6 +56,53 @@
 			focaltech,fw-delay-readid-ms = <10>;
 			focaltech,fw-delay-era-flsh-ms = <2000>;
 		};
+		Goodix-TS@5d {
+			compatible = "Goodix-TS,gt915";
+			reg = <0x5d>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <1 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vcc_i2c-supply = <&pm8110_l14>;
+			goodix,name = "Goodix-TS";
+			goodix,reset-gpios = <&msmgpio 0 0x00>;
+			goodix,interrupt-gpios = <&msmgpio 1 0x00>;	
+			goodix,no-force-update;
+			goodix,i2c-pull-up;
+			goodix,family-id = <0x0>;	
+			goodix,panel-coords = <0 0 481 940>;
+			goodix,display-coords = <0 0 480 854>;
+		/*	goodix,button-map= <158 102 139>;
+			goodix,cfg-data = [			
+			 47 1C 02 C0 03 05 34 01 02 0F 
+			 23 08 50 3C 03 05 00 00 00 00 
+			 12 00 00 14 14 1C 14 89 08 0B 
+			 37 00 B8 08 00 00 00 9A 33 1D 
+			 00 11 02 00 00 00 00 00 00 00 
+			 00 2C 6E 94 D5 02 05 00 00 04 
+			 8F 30 00 7A 3A 00 6A 45 00 5C 
+			 53 00 52 64 00 52 10 30 50 00 
+			 F0 80 50 FF FF 27 60 50 33 00 
+			 04 00 00 00 00 00 00 00 00 00 
+			 00 00 00 00 00 00 00 00 00 00 
+			 00 00 02 04 06 08 0A 0C 0E 10 
+			 12 14 16 FF FF FF 00 00 00 00 
+			 00 00 00 00 00 00 00 00 00 00 
+			 00 00 21 20 1F 1E 1D 1C 18 16 
+			 12 10 0F 0A 08 06 04 02 00 FF 
+			 FF FF FF FF FF FF FF FF 00 00 
+			 00 FF FF FF FF FF FF FF FF FF 
+			 FF FF FF FF F2 01
+				];*/
+ 			/*label = "ft5x06_ts,Goodix-TS";*/
+			/*
+			goodix,disp-maxx = <540>;
+			goodix,disp-maxy = <960>;
+			goodix,pan-maxx = <541>;
+			goodix,pan-maxy = <1060>;
+			goodix,key-codes = <158 102 139>;
+			goodix,y-offset = <0>;
+			*/
+		};
 	};
 
 	gen-vkeys {
@@ -90,6 +137,20 @@
 			kionix,negate-y;
 			kionix,negate-z;
 			kionix,res-12bit;
+		};
+
+                st480@c {
+                        compatible = "st,st480";
+                        reg = <0x0c>;
+                 };
+
+		bma2x2@18 {
+			compatible = "bosch,bma2x2";
+			reg = <0x18>;
+			interrupt-parent = <&msmgpio>;
+			interrupts = <81 0x2>;
+			vdd-supply = <&pm8110_l19>;
+			vio-supply = <&pm8110_l14>;
 		};
 	};
 
@@ -243,6 +304,18 @@
 				qcom,mode = "pwm";
 			};
 		};
+
+                qcom,leds@1000 {
+                        status = "okay";
+                        qcom,led_charger {
+                                label = "charger_light";
+                                linux,name = "charger_light";
+                                linux,default-trigger = "chgl-trigger";
+                                qcom,default-state = "off";
+                                qcom,max-current = <40>;
+                                qcom,id = <0x08>;
+                        };
+                };
 	};
 };
 
@@ -371,7 +444,6 @@
 };
 
 &android_usb {
-	qcom,android-usb-cdrom;
 	qcom,android-usb-internal-ums;
 };
 
