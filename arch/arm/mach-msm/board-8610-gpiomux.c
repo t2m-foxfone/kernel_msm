@@ -49,7 +49,7 @@ static struct gpiomux_setting gpio_cam_i2c_config = {
 };
 
 static struct gpiomux_setting gpio_nfc_config = {
-	.func = GPIOMUX_FUNC_2,
+	.func = GPIOMUX_FUNC_3,
 	.drv  = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
@@ -263,6 +263,22 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 		},
 	},
 	{
+                .gpio      = 88,        /* BLSP1 QUP4 I2C_SCL */
+                .settings = {
+                        [GPIOMUX_ACTIVE] = &gpio_nfc_config,
+                        [GPIOMUX_SUSPENDED] = &gpio_nfc_config,
+                },
+        },      
+        {               
+                .gpio      = 89,        
+                .settings = {
+                        [GPIOMUX_ACTIVE] = &gpio_nfc_config,
+                        [GPIOMUX_SUSPENDED] = &gpio_nfc_config,
+                },
+        },      
+
+
+	{
 		.gpio      = 78,	/* NFC CLK */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_nfc_config,
@@ -270,7 +286,7 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 		},
 	},
 };
-
+#if 0
 static struct gpiomux_setting gpio_i2c_nfc_pvt_config = {
 		.func = GPIOMUX_FUNC_5, /*active 1*/ /* 0 */
 		.drv = GPIOMUX_DRV_2MA,
@@ -279,21 +295,21 @@ static struct gpiomux_setting gpio_i2c_nfc_pvt_config = {
 
 static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 	{
-		.gpio   = 8,            /* BLSP1 QUP2 I2C_SDA */
+		.gpio   = 88,            /* BLSP1 QUP2 I2C_SDA */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_i2c_nfc_pvt_config,
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_nfc_pvt_config,
 		},
 	},
 	{
-		.gpio   = 9,            /* BLSP1 QUP2 I2C_SCL */
+		.gpio   = 89,            /* BLSP1 QUP2 I2C_SCL */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_i2c_nfc_pvt_config,
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_nfc_pvt_config,
 		},
 	},
 };
-
+#endif
 
 static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 	{
@@ -319,20 +335,6 @@ static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 	},
 	{
 		.gpio      = 87,		/* BLSP1 QUP4 SPI_DATA_MISO */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 88,		/* BLSP1 QUP4 SPI_CS */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_spi_config,
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
@@ -364,20 +366,6 @@ static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
 	},
 	{
 		.gpio      = 87,		/* BLSP1 QUP4 SPI_DATA_MISO */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 89,		/* BLSP1 QUP4 SPI_CLK */
-		.settings = {
-			[GPIOMUX_ACTIVE] = &gpio_spi_config,
-			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
-		},
-	},
-	{
-		.gpio      = 88,		/* BLSP1 QUP4 SPI_CS */
 		.settings = {
 			[GPIOMUX_ACTIVE] = &gpio_spi_config,
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
@@ -816,8 +804,10 @@ void __init msm8610_init_gpiomux(void)
 	if (of_board_is_qrd()) {
 		msm_gpiomux_install(msm_interrupt_configs,
 			ARRAY_SIZE(msm_interrupt_configs));
+#if 0
 		msm_gpiomux_install(msm_nfc_configs,
 			ARRAY_SIZE(msm_nfc_configs));
+#endif
 	} else {
 		msm_gpiomux_install(msm_non_qrd_configs,
 			ARRAY_SIZE(msm_non_qrd_configs));
