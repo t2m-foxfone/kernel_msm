@@ -342,7 +342,7 @@
                                 label = "charger_light";
                                 linux,name = "charger_light";
                                 linux,default-trigger = "chgl-trigger";
-                                qcom,default-state = "off";
+                                qcom,default-state = "on";
                                 qcom,max-current = <40>;
                                 qcom,id = <0x08>;
                         };
