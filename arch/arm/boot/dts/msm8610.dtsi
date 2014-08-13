@@ -564,7 +564,7 @@
 	};
 
 
-	i2c@f9924000 { /* BLSP-1 QUP-3 */
+	i2c@f9924000 { /* BLSP-1 QUP-2 */
 		cell-index = <2>;
 		compatible = "qcom,i2c-qup";
 		#address-cells = <1>;
