@@ -20,21 +20,15 @@ static struct msm_sensor_ctrl_t ov5648_s_ctrl;
 static struct msm_sensor_power_setting ov5648_power_setting[] = {
 	{
 		.seq_type = SENSOR_VREG,
-		.seq_val = CAM_VIO,
+		.seq_val = CAM_VDIG,
 		.config_val = 0,
 		.delay = 0,
 	},
 	{
-		.seq_type = SENSOR_GPIO,
-		.seq_val = SENSOR_GPIO_VDIG,
-		.config_val = GPIO_OUT_LOW,
-		.delay = 5,
-	},
-	{
-		.seq_type = SENSOR_GPIO,
-		.seq_val = SENSOR_GPIO_VDIG,
-		.config_val = GPIO_OUT_HIGH,
-		.delay = 5,
+		.seq_type = SENSOR_VREG,
+		.seq_val = CAM_VIO,
+		.config_val = 0,
+		.delay = 0,
 	},
 	{
 		.seq_type = SENSOR_VREG,
@@ -44,6 +38,18 @@ static struct msm_sensor_power_setting ov5648_power_setting[] = {
 	},
 	{
 		.seq_type = SENSOR_GPIO,
+		.seq_val = SENSOR_GPIO_VANA,
+		.config_val = GPIO_OUT_HIGH,
+		.delay = 5,
+	},
+	{
+		.seq_type = SENSOR_VREG,
+		.seq_val = CAM_VAF,
+		.config_val = 0,
+		.delay = 5,
+	},
+	{
+		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_STANDBY,
 		.config_val = GPIO_OUT_LOW,
 		.delay = 5,
@@ -65,6 +71,12 @@ static struct msm_sensor_power_setting ov5648_power_setting[] = {
 		.seq_val = SENSOR_GPIO_RESET,
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 10,
+	},
+	{
+		.seq_type = SENSOR_GPIO,
+		.seq_val = SENSOR_GPIO_AF_PWDM,
+		.config_val = GPIO_OUT_HIGH,
+		.delay = 5,
 	},
 	{
 		.seq_type = SENSOR_CLK,
