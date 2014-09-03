@@ -305,7 +305,7 @@ static void led_i2c_brightness_set_led_work(struct work_struct *work)
 		as364x->flash_curr = (as364x->pdata->brightness < 0xE0) ? as364x->pdata->brightness : 0xE0;
         turn_strobe_on(as364x, 0x0b);
     } else if(as364x->pdata->brightness > LED_OFF) {
-        as364x->torch_curr = as364x->pdata->brightness;
+        as364x->torch_curr = as364x->pdata->brightness - 50;
         turn_strobe_on(as364x, 0x0a);
         //turn_ext_torch_on(as364x);
     } else {
@@ -411,10 +411,6 @@ static int as364x_probe(struct i2c_client *client,
 	int id1, i;
 	int err = 0;
 
-	i = gpio_get_value(8);
-    printk("%s,%d\n", __func__, i);
-	i = gpio_get_value(9);
-    printk("%s,%d\n", __func__, i);
     printk("%s,%d\n", __func__, __LINE__);
 	id1 = i2c_smbus_read_byte_data(client, AS364X_REG_ChipID);
 	if (id1 < 0 || ((id1 & 0xf8) != 0xb0)) {
