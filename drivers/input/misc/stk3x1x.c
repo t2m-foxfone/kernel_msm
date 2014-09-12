@@ -190,15 +190,15 @@
 
 #ifdef STK_TUNE0
 #define STK_MAX_CT_VALUE	1200
-	#define STK_MAX_MIN_DIFF	150
-	#define STK_LT_N_CT	100
-	#define STK_HT_N_CT	150
+	#define STK_MAX_MIN_DIFF	200
+	#define STK_LT_N_CT	40
+	#define STK_HT_N_CT	90
 #endif	/* #ifdef STK_TUNE0 */
 
 #define STK_IRC_MAX_ALS_CODE		20000
 #define STK_IRC_MIN_ALS_CODE		25
 #define STK_IRC_MIN_IR_CODE		50
-#define STK_IRC_ALS_DENOMI		2		
+#define STK_IRC_ALS_DENOMI		2
 #define STK_IRC_ALS_NUMERA		5
 #define STK_IRC_ALS_CORREC		748
 
@@ -3006,17 +3006,19 @@ static void stk_work_func(struct work_struct *work)
     {
 		disable_flag |= STK_FLG_PSINT_MASK;
 		near_far_state = (org_flag_reg & STK_FLG_NF_MASK)?1:0;
-		
-		ps_data->ps_distance_last = near_far_state;
-		input_report_abs(ps_data->ps_input_dev, ABS_DISTANCE, near_far_state);
-		input_sync(ps_data->ps_input_dev);
-		wake_lock_timeout(&ps_data->ps_wakelock, 3*HZ);			
-		reading = stk3x1x_get_ps_reading(ps_data);
-#ifdef STK_DEBUG_PRINTF		
-		printk(KERN_INFO "%s: ps input event=%d, ps code = %d\n",__func__, near_far_state, reading);
-#endif			
+		if (ps_data->ps_distance_last != near_far_state)
+		{
+			ps_data->ps_distance_last = near_far_state;
+			input_report_abs(ps_data->ps_input_dev, ABS_DISTANCE, near_far_state);
+			input_sync(ps_data->ps_input_dev);
+			wake_lock_timeout(&ps_data->ps_wakelock, 3*HZ);
+			reading = stk3x1x_get_ps_reading(ps_data);
+#ifdef STK_DEBUG_PRINTF
+			printk(KERN_INFO "%s: ps input event=%d, ps code = %d\n",__func__, near_far_state, reading);
+#endif
+		}
 	}
-	
+
 	if(disable_flag)	
 	{	
 		ret = stk3x1x_set_flag(ps_data, org_flag_reg, disable_flag);		
