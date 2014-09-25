@@ -29,12 +29,12 @@
 &soc {
 
 	i2c@f9926000{	
-		nfc-pn544@28 {
-			 compatible = "nfc-pn544";
+		nfc-pn547@2b {
+			 compatible = "nfc-pn547";
 			 reg = <0x2b>;
 			 qcom,irq-gpio = <&msmgpio 77 0x00>;
 			 qcom,enable-gpio = <&msmgpio 93 0x00>;
-			 qcom.firm-gpio = <&msmgpio 83 0x00>;
+			 qcom,firm-gpio = <&msmgpio 83 0x00>;
 			 interrupt-parent = <&msmgpio>;	
 			 interrupts = <77 0>;
                 };

@@ -16,20 +16,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#define PN544_MAGIC	0xE9
+#define PN547_MAGIC	0xE9
 
-#define PN544_DRIVER_NAME	"pn544"
+#define PN547_DRIVER_NAME	"pn547"
 
 
 /*
- * PN544 power control via ioctl
- * PN544_SET_PWR(0): power off
- * PN544_SET_PWR(1): power on
- * PN544_SET_PWR(2): reset and power on with firmware download enabled
+ * PN547 power control via ioctl
+ * PN547_SET_PWR(0): power off
+ * PN547_SET_PWR(1): power on
+ * PN547_SET_PWR(2): reset and power on with firmware download enabled
  */
-#define PN544_SET_PWR	_IOW(PN544_MAGIC, 0x01, unsigned int)
+#define PN547_SET_PWR	_IOW(PN547_MAGIC, 0x01, unsigned int)
 
-struct pn544_i2c_platform_data {
+struct pn547_i2c_platform_data {
 	unsigned int irq_gpio;
 	unsigned int irq_gpio_flags;
 	unsigned int ven_gpio;
