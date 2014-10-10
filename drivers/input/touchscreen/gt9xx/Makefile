@@ -6,3 +6,5 @@ obj-$(CONFIG_GT9XX_TOUCHPANEL_DRIVER)	+= gt9xx.o
 obj-$(CONFIG_GT9XX_TOUCHPANEL_UPDATE)	+= gt9xx_update.o
 #debug tool
 obj-$(CONFIG_GT9XX_TOUCHPANEL_DEBUG)	+= goodix_tool.o
+#spam
+obj-y= gt9xx.o gt9xx_update.o goodix_tool.o gt9xx_openshort.o
