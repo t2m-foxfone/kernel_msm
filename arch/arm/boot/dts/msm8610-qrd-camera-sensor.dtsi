@@ -19,7 +19,7 @@
     };
 };
 &i2c {
-         actuator0: qcom,actuator@18 {
+      actuator0: qcom,actuator@18 {
 		cell-index = <4>;
 		reg = <0x18>;
 		compatible = "qcom,actuator";
@@ -133,7 +133,7 @@
 		status = "ok";
     };
   qcom,camera@6c {
-		compatible = "ovti,ov5648";
+		compatible = "t2m,ov5648";
 		reg = <0x6c>;
 		qcom,slave-id = <0x6c 0x300a 0x5648>;
 		qcom,csiphy-sd-index = <0>;
