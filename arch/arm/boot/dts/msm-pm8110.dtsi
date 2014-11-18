@@ -32,14 +32,22 @@
 			reg = <0x800 0x100>;
 			interrupts = <0x0 0x8 0x0>,
 				     <0x0 0x8 0x1>,
-				     <0x0 0x8 0x4>;
-			interrupt-names = "kpdpwr", "resin", "resin-bark";
+				     <0x0 0x8 0x4>,
+				     <0x0 0x8 0x5>;
+			interrupt-names = "kpdpwr", "resin", 
+					"resin-bark","kpdpwr-resin-bark";
 			qcom,pon-dbc-delay = <15625>;
 			qcom,system-reset;
+                        qcom,s3-debounce = <32>;
+                        qcom,s3-src = "kpdpwr-and-resin";
 
 			qcom,pon_1 {
 				qcom,pon-type = <0>;
 				qcom,pull-up = <1>;
+				qcom,support-reset = <1>;
+			        qcom,s1-timer = <4480>;
+                                qcom,s2-timer = <2000>;
+                                qcom,s2-type = <7>;
 				linux,code = <116>;
 			};
 
@@ -61,9 +69,9 @@
 			qcom,vddsafe-mv = <4230>;
 			qcom,vinmin-mv = <4300>;
 			qcom,vbatdet-mv = <4100>;
-			qcom,ibatmax-ma = <1500>;
+			qcom,ibatmax-ma = <800>;
 			qcom,ibatterm-ma = <100>;
-			qcom,ibatsafe-ma = <1500>;
+			qcom,ibatsafe-ma = <800>;
 			qcom,thermal-mitigation = <1500 700 600 325>;
 			qcom,vbatdet-delta-mv = <100>;
 			qcom,resume-soc = <99>;
@@ -396,6 +404,11 @@
 		qcom,leds@a200 {
 			compatible = "qcom,leds-qpnp";
 			reg = <0xa200 0x100>;
+			label = "mpp";
+		};
+		qcom,leds@1000 {
+			compatible = "qcom,leds-qpnp";
+			reg = <0x1000 0x100>;
 			label = "mpp";
 		};
 	};
